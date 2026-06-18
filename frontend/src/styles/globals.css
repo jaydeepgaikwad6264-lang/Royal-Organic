@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #FFFFFF;
+  --bg-soft: #F7F5EF;
+  --text: #0B3B2E;
+}
+
+html, body {
+  height: 100%;
+  scroll-behavior: smooth;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.container {
+  @apply max-w-7xl mx-auto px-5 md:px-8;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-md transition-colors;
+}
+
+.btn-primary {
+  @apply btn bg-royal-green text-white hover:bg-royal-tea focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal-green/40;
+}
+
+.btn-outline {
+  @apply btn border border-royal-green text-royal-green hover:bg-royal-green hover:text-white;
+}
+
+.section {
+  @apply py-12 md:py-20;
+}
+
+.section-title {
+  @apply font-heading text-3xl md:text-4xl tracking-tight;
+}
+
+.section-subtitle {
+  @apply text-royal-green/70 mt-2;
+}
