@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useCart } from '../../lib/cartContext'
 import { api, OrderItem } from '../../lib/api'
 import { formatUSD } from '../../lib/format'
@@ -56,7 +56,7 @@ function CheckoutForm({ clientSecret, onSuccess }: { clientSecret: string; onSuc
   )
 }
 
-export default function PaymentPage() {
+function PaymentPageContent() {
   const { cart, totalPrice, clearCart } = useCart()
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [orderId, setOrderId] = useState<string | null>(null)
@@ -66,6 +66,19 @@ export default function PaymentPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const isClient = useClientOnly()
+
+  const initPayment = useCallback(async () => {
+    try {
+      const order = await api.createOrder(cart)
+      const payment = await api.createPaymentIntent(order._id)
+      setOrderId(order._id)
+      setClientSecret(payment.clientSecret)
+    } catch (err: any) {
+      setError(err.message || 'Failed to initialize payment')
+    } finally {
+      setLoading(false)
+    }
+  }, [cart])
 
   useEffect(() => {
     if (isClient) {
@@ -98,20 +111,7 @@ export default function PaymentPage() {
         setLoading(false)
       }
     }
-  }, [isClient, cart])
-
-  async function initPayment() {
-    try {
-      const order = await api.createOrder(cart)
-      const payment = await api.createPaymentIntent(order._id)
-      setOrderId(order._id)
-      setClientSecret(payment.clientSecret)
-    } catch (err: any) {
-      setError(err.message || 'Failed to initialize payment')
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [isClient, searchParams, cart, initPayment])
 
   async function handlePaymentSuccess() {
     try {
@@ -222,5 +222,13 @@ export default function PaymentPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={null}>
+      <PaymentPageContent />
+    </Suspense>
   )
 }

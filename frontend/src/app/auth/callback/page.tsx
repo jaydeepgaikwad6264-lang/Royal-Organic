@@ -1,9 +1,9 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCart } from '../../../lib/cartContext'
 
-export default function AuthCallback() {
+function AuthCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { fetchCart } = useCart()
@@ -49,5 +49,13 @@ export default function AuthCallback() {
         <h2 className="text-2xl font-heading text-royal-text">{status}</h2>
       </div>
     </div>
+  )
+}
+
+export default function AuthCallback() {
+  return (
+    <Suspense fallback={null}>
+      <AuthCallbackContent />
+    </Suspense>
   )
 }

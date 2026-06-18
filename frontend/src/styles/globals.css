@@ -6,6 +6,8 @@
   --bg: #FFFFFF;
   --bg-soft: #F7F5EF;
   --text: #0B3B2E;
+  --font-inter: "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-playfair: Georgia, "Times New Roman", Times, serif;
 }
 
 html, body {

@@ -37,9 +37,9 @@ export type Order = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000'
 
-function getAuthHeaders() {
+function getAuthHeaders(): Record<string, string> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-  return token ? { 'Authorization': `Bearer ${token}` } : {}
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 async function request<T>(path: string, options: RequestInit & { json?: any } = {}): Promise<T> {

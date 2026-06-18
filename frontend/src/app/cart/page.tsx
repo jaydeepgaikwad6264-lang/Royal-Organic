@@ -19,7 +19,7 @@ export default function CartPage() {
         <div className="container max-w-4xl mx-auto text-center">
           <div className="text-8xl mb-6 animate-bounce">🛒</div>
           <h1 className="text-4xl font-bold text-gray-800 mb-4">Your Shopping Cart is Empty</h1>
-          <p className="text-gray-600 text-lg mb-10">Looks like you haven't added anything to your cart yet!</p>
+          <p className="text-gray-600 text-lg mb-10">Looks like you haven&apos;t added anything to your cart yet!</p>
           <Link href="/shop" className="inline-flex items-center gap-3 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-8 py-4 rounded-2xl font-bold text-xl shadow-2xl hover:shadow-emerald-200 transition-all">
             🌿 Browse Products
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
