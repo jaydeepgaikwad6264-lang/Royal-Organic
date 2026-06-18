@@ -182,7 +182,7 @@ Because of that, no extra frontend code change is required if `NEXT_PUBLIC_API_B
 If you are using Google login, also update your Google Cloud Console settings:
 
 - Add the backend callback URL as an authorized redirect URI:
-  - `https://your-backend-domain.vercel.app/api/auth/google/callback`
+  - `https://royal-organic-ten.vercel.app/api/auth/google/callback`
 - Add your deployed frontend and backend domains where required in Google Cloud Console
 - Make sure the backend `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` match the same Google app
 
