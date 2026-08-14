@@ -2,7 +2,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import logoImage from '../lib/logo.jpeg'
+import logoImage from '../lib/logo.png'
 
 export default function Hero() {
   return (
@@ -38,19 +38,19 @@ export default function Hero() {
           </div>
         </motion.div>
         <motion.div
-          initial={{ opacity: 0, x: 16 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="relative h-64 md:h-[28rem] rounded-xl shadow-soft"
-        >
-          <Image
-            src={logoImage}
-            alt="Royal Organics logo"
-            fill
-            className="object-contain rounded-xl bg-white p-6"
-            priority
-          />
-        </motion.div>
+  initial={{ opacity: 0, x: 16 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ duration: 0.6, delay: 0.1 }}
+  className="relative h-80 md:h-[34rem] rounded-xl shadow-soft"
+>
+  <Image
+    src={logoImage}
+    alt="Royal Organics logo"
+    fill
+    className="object-contain rounded-xl bg-white p-0 scale-125"
+    priority
+  />
+</motion.div>
       </div>
     </section>
   )
