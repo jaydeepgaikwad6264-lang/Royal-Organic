@@ -36,8 +36,8 @@ export default function CartPage() {
     const original = product ? product.originalPrice : item.pricePerUnit * 1.3
     return acc + ((original - item.pricePerUnit) * item.quantity)
   }, 0)
-  const delivery = totalPrice >= 499 ? 0 : 49
-  const finalTotal = totalPrice + delivery
+  const delivery = 0
+  const finalTotal = totalPrice
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-emerald-50 py-12">
@@ -149,11 +149,12 @@ export default function CartPage() {
                   <span>Your Savings</span>
                   <span className="font-semibold">- {formatINR(Math.round(savings))}</span>
                 </div>
-                <div className="flex justify-between text-gray-700">
+                <div className="flex justify-between text-green-600">
                   <span>Delivery Charges</span>
-                  <span className={delivery === 0 ? "font-semibold text-green-600" : "font-semibold"}>
-                    {delivery === 0 ? "FREE" : formatINR(delivery)}</span>
-                  </div>
+                  <span className="font-semibold text-green-600 flex items-center gap-1">
+                    🎁 FREE
+                  </span>
+                </div>
               </div>
               
               <div className="border-t border-gray-200 pt-4 mb-6">
@@ -161,16 +162,9 @@ export default function CartPage() {
                   <span className="text-xl font-bold text-gray-800">Total Amount</span>
                   <span className="text-2xl font-bold text-emerald-700">{formatINR(finalTotal)}</span>
                 </div>
-                {delivery === 0 && (
-                  <p className="text-green-600 text-sm mt-2 flex items-center gap-1">
-                    ✅ Free delivery applied!
-                  </p>
-                )}
-                {delivery > 0 && (
-                  <p className="text-orange-600 text-sm mt-2 flex items-center gap-1">
-                    🚚 Add {formatINR(499 - totalPrice)} more for free delivery!
-                  </p>
-                )}
+                <p className="text-green-600 text-sm mt-2 flex items-center gap-1">
+                  ✅ Free delivery applied on all orders!
+                </p>
               </div>
               
               <Link href="/address" className="w-full bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 py-4 rounded-xl font-bold text-xl text-center shadow-lg hover:shadow-xl transition-all block mb-4">

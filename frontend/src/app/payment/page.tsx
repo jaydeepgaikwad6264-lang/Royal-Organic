@@ -27,6 +27,7 @@ function PaymentPageContent() {
   const [error, setError] = useState('')
   const [displayProducts, setDisplayProducts] = useState<OrderItem[]>(cart)
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null)
+  const [orderId, setOrderId] = useState<string | null>(null)
   const [processing, setProcessing] = useState(false)
   const [razorpayLoaded, setRazorpayLoaded] = useState(false)
   const searchParams = useSearchParams()
@@ -38,33 +39,38 @@ function PaymentPageContent() {
       setLoading(true)
       setError('')
 
-      let orderId = searchParams.get('orderId')
+      let finalOrderId: string | null = searchParams.get('orderId')
       const addressId = searchParams.get('address') || undefined
 
-      if (orderId) {
+      if (finalOrderId) {
         const tempProducts = localStorage.getItem('temp_order_products')
         if (tempProducts) {
           setDisplayProducts(JSON.parse(tempProducts))
         }
+        try {
+          const existingOrder = await api.getOrderById(finalOrderId)
+          setCurrentOrder(existingOrder)
+          if (existingOrder.products && existingOrder.products.length > 0) {
+            setDisplayProducts(existingOrder.products)
+          }
+        } catch {
+          // ignore - proceed with retry flow
+        }
       } else if (cart.length > 0) {
         const order = await api.createOrder(cart, addressId)
-        orderId = order._id
+        finalOrderId = order._id
         setCurrentOrder(order)
       } else {
         setLoading(false)
         return
       }
 
-      if (!orderId) {
+      if (!finalOrderId) {
         setError('Order not found')
         setLoading(false)
         return
       }
-
-      const rpOrder = await api.createRazorpayOrder(orderId)
-      if (!currentOrder) {
-        setCurrentOrder(null)
-      }
+      setOrderId(finalOrderId)
 
       if (typeof window !== 'undefined' && window.Razorpay) {
         setRazorpayLoaded(true)
@@ -86,8 +92,8 @@ function PaymentPageContent() {
 
   async function handlePayment() {
     if (processing) return
-    if (!currentOrder) {
-      setError('Order not ready')
+    if (!orderId) {
+      setError('Order not ready. Please wait or refresh the page.')
       return
     }
 
@@ -95,7 +101,26 @@ function PaymentPageContent() {
       setProcessing(true)
       setError('')
 
-      const rpOrder = await api.createRazorpayOrder(currentOrder._id)
+      let activeOrderId = orderId
+
+      if (!currentOrder) {
+        try {
+          const fetched = await api.getOrderById(activeOrderId)
+          setCurrentOrder(fetched)
+        } catch {
+          // if order no longer valid and we have cart, recreate
+          if (cart.length > 0) {
+            const addressId = searchParams.get('address') || undefined
+            const newOrder = await api.createOrder(cart, addressId)
+            activeOrderId = newOrder._id
+            setCurrentOrder(newOrder)
+            setOrderId(newOrder._id)
+            setDisplayProducts(newOrder.products || cart)
+          }
+        }
+      }
+
+      const rpOrder = await api.createRazorpayOrder(activeOrderId)
 
       if (!window.Razorpay) {
         setError('Razorpay SDK not loaded. Please try again.')
@@ -113,7 +138,7 @@ function PaymentPageContent() {
         handler: async function (response: RazorpayResponse) {
           try {
             const result = await api.verifyRazorpayPayment({
-              orderId: currentOrder!._id,
+              orderId: activeOrderId,
               razorpayOrderId: response.razorpay_order_id,
               razorpayPaymentId: response.razorpay_payment_id,
               razorpaySignature: response.razorpay_signature,
@@ -200,7 +225,7 @@ function PaymentPageContent() {
 
                 {loading ? (
                   <div className="text-center py-16 text-gray-500 text-xl">Initializing payment...</div>
-                ) : error ? (
+                ) : error && !processing ? (
                   <div className="mb-6">
                     <div className="bg-red-100 border border-red-300 text-red-700 px-6 py-4 rounded-xl mb-6">
                       {error}
@@ -245,6 +270,12 @@ function PaymentPageContent() {
                       )}
                     </button>
 
+                    {error && processing === false && (
+                      <div className="bg-red-100 border border-red-300 text-red-700 px-6 py-4 rounded-xl">
+                        {error}
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-center gap-4 py-2 text-sm text-gray-500">
                       <span className="flex items-center gap-1">🔒 SSL Secured</span>
                       <span className="text-gray-300">|</span>
@@ -288,9 +319,9 @@ function PaymentPageContent() {
                     <span>Your Savings</span>
                     <span className="font-semibold">- {formatINR(Math.round(savings))}</span>
                   </div>
-                  <div className="flex justify-between text-gray-700">
+                  <div className="flex justify-between text-green-600">
                     <span>Delivery</span>
-                    <span className="font-semibold text-green-600">Free</span>
+                    <span className="font-semibold flex items-center gap-1">🎁 FREE</span>
                   </div>
                 </div>
 
@@ -299,6 +330,9 @@ function PaymentPageContent() {
                     <span className="text-xl font-bold text-gray-800">Total</span>
                     <span className="text-3xl font-bold text-emerald-700">{formatINR(displayTotal)}</span>
                   </div>
+                  <p className="text-green-600 text-xs mt-2 flex items-center gap-1">
+                    ✅ Free delivery applied on all orders
+                  </p>
                 </div>
 
                 <Link href="/cart" className="w-full text-center text-gray-600 hover:text-emerald-600 font-medium transition-colors">
