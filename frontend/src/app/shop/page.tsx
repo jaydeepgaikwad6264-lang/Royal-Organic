@@ -24,14 +24,14 @@ export default function ShopPage({ searchParams }: { searchParams: { filter?: st
   return (
     <main>
       <Section>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="section-title">Shop Royal Organics</h1>
             <p className="section-subtitle">Clean, lab-tested moringa for modern wellness</p>
           </div>
           <Filters />
         </div>
-        <div className="mt-8 grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="mt-6 sm:mt-8 grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           {data.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}

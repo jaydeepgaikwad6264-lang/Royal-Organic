@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { api } from '../../lib/api'
 import FormField from '../../components/FormField'
 
@@ -43,9 +44,9 @@ export default function RegisterPage() {
 
   return (
     <main className="min-h-[60vh] bg-royal-beige">
-      <div className="container py-12 flex justify-center">
-        <form onSubmit={onSubmit} className="w-full max-w-md rounded-xl border border-royal-sand bg-white p-6 grid gap-4" aria-label="Register">
-          <h1 className="font-heading text-3xl text-royal-text text-center">Create Account</h1>
+      <div className="container py-8 md:py-12 flex justify-center px-4">
+        <form onSubmit={onSubmit} className="w-full max-w-md rounded-xl border border-royal-sand bg-white p-4 sm:p-6 grid gap-4" aria-label="Register">
+          <h1 className="font-heading text-2xl sm:text-3xl text-royal-text text-center">Create Account</h1>
           <FormField id="name" label="Full Name" value={name} onChange={setName} required placeholder="Jane Doe" />
           <FormField id="email" label="Email" type="email" value={email} onChange={setEmail} required placeholder="you@example.com" />
           <FormField id="password" label="Password" type="password" value={password} onChange={setPassword} required placeholder="At least 8 characters" />
@@ -57,6 +58,11 @@ export default function RegisterPage() {
           <a className="btn-outline px-6 py-3 text-center" href={api.googleUrl()} aria-label="Sign up with Google">
             Sign up with Google
           </a>
+          <div className="text-center text-sm">
+            <Link href="/login" className="text-royal-green hover:underline">
+              Already have an account? Login here
+            </Link>
+          </div>
         </form>
       </div>
     </main>

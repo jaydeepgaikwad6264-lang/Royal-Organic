@@ -65,7 +65,7 @@ export default function ProductCard({ product }: { product: Product }) {
       className={`rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-lg transition-all relative ${product.inStock ? 'hover:shadow-2xl' : 'opacity-75'}`}
     >
       <Link href={`/products/${product.slug}`} aria-label={`View ${product.name}`} className="block">
-        <div className="relative h-64 overflow-hidden">
+        <div className="relative h-48 sm:h-64 overflow-hidden">
           <Image
             src={product.image}
             alt={product.name}
@@ -75,48 +75,48 @@ export default function ProductCard({ product }: { product: Product }) {
           />
           {!product.inStock && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
-              <span className="bg-red-600 text-white px-6 py-3 rounded-lg text-xl font-bold shadow-lg">
+              <span className="bg-red-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-lg sm:text-xl font-bold shadow-lg">
                 OUT OF STOCK
               </span>
             </div>
           )}
           {product.category === 'powder' && (
-            <span className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+            <span className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-green-500 text-white px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold">
               100% Pure
             </span>
           )}
           {product.category === 'capsules' && (
-            <span className="absolute top-4 left-4 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+            <span className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-blue-500 text-white px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold">
               Easy to Use
             </span>
           )}
         </div>
-        <div className="p-6">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="p-4 sm:p-6">
+          <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
             {[1,2,3,4,5].map(star => (
-              <span key={star} className="text-yellow-400 text-lg">★</span>
+              <span key={star} className="text-yellow-400 text-base sm:text-lg">★</span>
             ))}
-            <span className="text-sm text-gray-500">(128)</span>
+            <span className="text-xs sm:text-sm text-gray-500">(128)</span>
           </div>
-          <div className="font-heading text-xl text-gray-800 mb-2">{product.name}</div>
-          <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
+          <div className="font-heading text-lg sm:text-xl text-gray-800 mb-1 sm:mb-2">{product.name}</div>
+          <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-2">{product.description}</p>
           
-          <div className="flex items-baseline gap-3 mb-4">
-            <div className="text-3xl font-bold text-emerald-700">{formatINR(product.price)}</div>
-            <div className="text-gray-400 line-through text-sm">{formatINR(product.originalPrice)}</div>
-            <span className="text-green-600 text-sm font-bold">{discountPercent}% OFF</span>
+          <div className="flex items-baseline gap-2 sm:gap-3 mb-2 sm:mb-4 flex-wrap">
+            <div className="text-2xl sm:text-3xl font-bold text-emerald-700">{formatINR(product.price)}</div>
+            <div className="text-gray-400 line-through text-xs sm:text-sm">{formatINR(product.originalPrice)}</div>
+            <span className="text-green-600 text-xs sm:text-sm font-bold">{discountPercent}% OFF</span>
           </div>
           
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-xs sm:text-sm text-gray-500 mb-2 sm:mb-4">
             <span className="text-gray-400">per unit</span> • <span className="text-emerald-600 font-semibold">Free delivery</span> on orders over {formatINR(499)}
           </p>
         </div>
       </Link>
       
-      <div className="px-6 pb-6">
+      <div className="px-4 sm:px-6 pb-4 sm:pb-6">
         {existingItem && product.inStock ? (
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 bg-gray-100 rounded-full">
+          <div className="flex items-center justify-between gap-2 sm:gap-3 flex-col sm:flex-row">
+            <div className="flex items-center gap-1 sm:gap-2 bg-gray-100 rounded-full w-full sm:w-auto justify-center">
               <button
                 onClick={(e) => { 
                   e.preventDefault()
@@ -125,32 +125,32 @@ export default function ProductCard({ product }: { product: Product }) {
                   }
                 }}
                 disabled={processing}
-                className="w-10 h-10 rounded-full bg-white shadow text-gray-700 font-bold hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow text-gray-700 font-bold hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 -
               </button>
-              <span className="w-12 text-center font-bold text-gray-800">{existingItem.quantity}</span>
+              <span className="w-10 sm:w-12 text-center font-bold text-gray-800 text-sm sm:text-base">{existingItem.quantity}</span>
               <button
                 onClick={(e) => { 
                   e.preventDefault()
                   handleUpdateQuantity(product.id, existingItem.quantity + 1)
                 }}
                 disabled={processing}
-                className="w-10 h-10 rounded-full bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50"
               >
                 +
               </button>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Total</p>
-              <p className="font-bold text-gray-800">{formatINR(existingItem.quantity * existingItem.pricePerUnit)}</p>
+            <div className="text-center sm:text-right w-full sm:w-auto">
+              <p className="text-xs sm:text-sm text-gray-500">Total</p>
+              <p className="font-bold text-gray-800 text-sm sm:text-base">{formatINR(existingItem.quantity * existingItem.pricePerUnit)}</p>
             </div>
           </div>
         ) : (
           <button
             onClick={handleAddToCart}
             disabled={processing || !product.inStock}
-            className={`w-full py-3 rounded-xl font-bold text-lg shadow-lg transition-all ${
+            className={`w-full py-2.5 sm:py-3 rounded-xl font-bold text-base sm:text-lg shadow-lg transition-all ${
               product.inStock
                 ? 'bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 hover:shadow-xl disabled:opacity-50'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'

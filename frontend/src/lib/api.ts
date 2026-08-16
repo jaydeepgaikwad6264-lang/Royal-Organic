@@ -99,7 +99,7 @@ export type RazorpayVerifyResponse = {
 }
 
 export const api = {
-  login: (email: string, password: string) => request<AuthResponse>('/api/auth/login', { method: 'POST', json: { email, password } }),
+  login: (email: string, password?: string) => request<AuthResponse>('/api/auth/login', { method: 'POST', json: { email, password } }),
   register: (name: string, email: string, password: string) =>
     request<AuthResponse>('/api/auth/register', { method: 'POST', json: { name, email, password } }),
   googleUrl: () => `${API_BASE}/api/auth/google`,

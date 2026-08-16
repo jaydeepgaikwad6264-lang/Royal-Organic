@@ -61,37 +61,37 @@ export default function BulkPurchaseBox({
   }
 
   return (
-    <div className="mt-6 rounded-lg border border-royal-sand p-4 bg-white">
-      <div className="font-heading text-xl">Quantity</div>
-      <div className="mt-4 flex items-center gap-3" aria-label="Quantity selector">
-        <button className="btn-outline px-3 py-2" onClick={() => changeQty(-1)} aria-label="Decrease 1">-1</button>
-        <button className="btn-outline px-3 py-2" onClick={() => changeQty(+1)} aria-label="Increase 1">+1</button>
-        <button className="btn-outline px-3 py-2" onClick={() => changeQty(+5)} aria-label="Increase 5">+5</button>
+    <div className="mt-6 rounded-lg border border-royal-sand p-3 sm:p-4 bg-white">
+      <div className="font-heading text-lg sm:text-xl">Quantity</div>
+      <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-2 sm:gap-3" aria-label="Quantity selector">
+        <button className="btn-outline px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base" onClick={() => changeQty(-1)} aria-label="Decrease 1">-1</button>
+        <button className="btn-outline px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base" onClick={() => changeQty(+1)} aria-label="Increase 1">+1</button>
+        <button className="btn-outline px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base" onClick={() => changeQty(+5)} aria-label="Increase 5">+5</button>
         <input
           type="number"
           min={0}
           value={qty}
           onChange={onInput}
-          className="w-20 border border-royal-sand rounded-md px-3 py-2 text-center"
+          className="w-16 sm:w-20 border border-royal-sand rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-center text-sm sm:text-base"
           aria-describedby="bulk-help"
         />
       </div>
-      <p id="bulk-help" className="mt-2 text-sm text-royal-muted">Adjust quantity as needed.</p>
-      <div className="mt-4">
-        <div className="text-lg">
-          Total: <span className="font-heading">{formatINR(total)}</span> <span className="text-royal-muted">({formatINR(unitPrice)} per unit)</span>
+      <p id="bulk-help" className="mt-2 text-xs sm:text-sm text-royal-muted">Adjust quantity as needed.</p>
+      <div className="mt-3 sm:mt-4">
+        <div className="text-base sm:text-lg">
+          Total: <span className="font-heading">{formatINR(total)}</span> <span className="text-royal-muted text-xs sm:text-sm">({formatINR(unitPrice)} per unit)</span>
         </div>
       </div>
       {product && !product.inStock ? (
         <button
-          className="mt-4 px-6 py-3 bg-gray-300 text-gray-500 cursor-not-allowed rounded-md"
+          className="mt-3 sm:mt-4 px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-300 text-gray-500 cursor-not-allowed rounded-md w-full sm:w-auto text-sm sm:text-base"
           disabled
         >
           Out of Stock
         </button>
       ) : (
         <button
-          className={`btn-primary mt-4 px-6 py-3 ${!isValid || processing ? 'opacity-60 cursor-not-allowed' : ''}`}
+          className={`btn-primary mt-3 sm:mt-4 px-4 sm:px-6 py-2.5 sm:py-3 w-full sm:w-auto ${!isValid || processing ? 'opacity-60 cursor-not-allowed' : ''} text-sm sm:text-base`}
           onClick={handleAddToCart}
           aria-disabled={!isValid || processing}
           disabled={!isValid || processing}

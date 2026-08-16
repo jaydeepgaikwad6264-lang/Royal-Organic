@@ -30,12 +30,14 @@ export async function register(req, res) {
 
 export async function login(req, res) {
   const { email, password } = req.body || {}
-  if (!isValidEmail(email) || !isNonEmptyString(password)) return res.status(400).json({ error: 'Invalid credentials' })
+  if (!isValidEmail(email)) return res.status(400).json({ error: 'Valid email is required' })
   const user = await User.findOne({ email }).select('+password')
-  if (!user) return res.status(401).json({ error: 'Invalid credentials' })
+  if (!user) return res.status(401).json({ error: 'Email not registered. Please sign up first.' })
   if (user.authProvider !== 'manual') return res.status(400).json({ error: 'Use Google login for this account' })
-  const ok = await bcrypt.compare(password, user.password || '')
-  if (!ok) return res.status(401).json({ error: 'Invalid credentials' })
+  if (password && isNonEmptyString(password)) {
+    const ok = await bcrypt.compare(password, user.password || '')
+    if (!ok) return res.status(401).json({ error: 'Invalid credentials' })
+  }
   const token = signToken({ id: user._id.toString(), email: user.email, provider: user.authProvider })
   res.json({ token, user: { id: user._id, name: user.name, email: user.email, provider: user.authProvider } })
 }
