@@ -15,8 +15,13 @@ const orderSchema = new mongoose.Schema(
     products: { type: [orderItemSchema], default: [] },
     quantity: { type: Number, required: true, min: 1 }, // total quantity across items
     totalAmount: { type: Number, required: true, min: 0 },
-    status: { type: String, enum: ['pending', 'paid', 'shipped'], default: 'pending' },
-    paymentIntentId: { type: String }, // Stripe-ready
+    status: { type: String, enum: ['pending', 'paid', 'shipped', 'failed', 'refunded'], default: 'pending' },
+    paymentIntentId: { type: String }, // Stripe-ready (kept for backwards compat)
+    // Razorpay fields
+    razorpayOrderId: { type: String },
+    razorpayPaymentId: { type: String },
+    razorpaySignature: { type: String },
+    addressId: { type: mongoose.Schema.Types.ObjectId, ref: 'Address' },
   },
   { timestamps: { createdAt: true, updatedAt: true } }
 )

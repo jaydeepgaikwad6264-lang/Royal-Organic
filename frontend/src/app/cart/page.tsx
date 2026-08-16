@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useCart } from '../../lib/cartContext'
 import { products } from '../../data/products'
-import { formatUSD } from '../../lib/format'
+import { formatINR } from '../../lib/format'
 import Link from 'next/link'
 import { useClientOnly } from '../../lib/useClientOnly'
 
@@ -31,8 +31,12 @@ export default function CartPage() {
     )
   }
 
-  const savings = cart.reduce((acc, item) => acc + (item.pricePerUnit * 0.3 * item.quantity), 0)
-  const delivery = totalPrice >= 50 ? 0 : 4.99
+  const savings = cart.reduce((acc, item) => {
+    const product = products.find(p => p.id === item.productId)
+    const original = product ? product.originalPrice : item.pricePerUnit * 1.3
+    return acc + ((original - item.pricePerUnit) * item.quantity)
+  }, 0)
+  const delivery = totalPrice >= 499 ? 0 : 49
   const finalTotal = totalPrice + delivery
 
   return (
@@ -120,8 +124,10 @@ export default function CartPage() {
                       </div>
                       
                       <div className="flex items-baseline gap-3">
-                        <span className="text-2xl font-bold text-emerald-700">{formatUSD(item.quantity * item.pricePerUnit)}</span>
-                        <span className="text-gray-400 line-through text-sm">{formatUSD(Math.round(item.quantity * item.pricePerUnit * 1.3))}</span>
+                        <span className="text-2xl font-bold text-emerald-700">{formatINR(item.quantity * item.pricePerUnit)}</span>
+                        <span className="text-gray-400 line-through text-sm">
+                          {formatINR(item.quantity * (products.find(p => p.id === item.productId)?.originalPrice || Math.round(item.pricePerUnit * 1.3)))}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -137,23 +143,23 @@ export default function CartPage() {
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between text-gray-700">
                   <span>Price ({totalItems} items)</span>
-                  <span className="font-semibold">{formatUSD(totalPrice)}</span>
+                  <span className="font-semibold">{formatINR(totalPrice)}</span>
                 </div>
                 <div className="flex justify-between text-green-600">
                   <span>Your Savings</span>
-                  <span className="font-semibold">- {formatUSD(Math.round(savings))}</span>
+                  <span className="font-semibold">- {formatINR(Math.round(savings))}</span>
                 </div>
                 <div className="flex justify-between text-gray-700">
                   <span>Delivery Charges</span>
                   <span className={delivery === 0 ? "font-semibold text-green-600" : "font-semibold"}>
-                    {delivery === 0 ? "FREE" : formatUSD(delivery)}</span>
+                    {delivery === 0 ? "FREE" : formatINR(delivery)}</span>
                   </div>
               </div>
               
               <div className="border-t border-gray-200 pt-4 mb-6">
                 <div className="flex justify-between items-center">
                   <span className="text-xl font-bold text-gray-800">Total Amount</span>
-                  <span className="text-2xl font-bold text-emerald-700">{formatUSD(finalTotal)}</span>
+                  <span className="text-2xl font-bold text-emerald-700">{formatINR(finalTotal)}</span>
                 </div>
                 {delivery === 0 && (
                   <p className="text-green-600 text-sm mt-2 flex items-center gap-1">
@@ -162,7 +168,7 @@ export default function CartPage() {
                 )}
                 {delivery > 0 && (
                   <p className="text-orange-600 text-sm mt-2 flex items-center gap-1">
-                    🚚 Add {formatUSD(50 - totalPrice)} more for free delivery!
+                    🚚 Add {formatINR(499 - totalPrice)} more for free delivery!
                   </p>
                 )}
               </div>

@@ -58,21 +58,21 @@ export default function HomePage() {
         </div>
       </Section>
       <ProductShowcase
-        title="Moringa Powder"
-        description="Fine-milled for smooth mixing in smoothies and recipes."
-        image={moringaPowderFront}
-        images={[moringaPowderFront, moringaPowderBack, moringaPowderSide]}
-        align="left"
-        viewHref="/products/moringa-powder"
-        buyHref="/shop"
-      />
-      <ProductShowcase
         title="Moringa Capsules"
         description="Convenient capsules for taste-free daily wellness."
         image={moringaCapsulesFront}
         images={[moringaCapsulesFront, moringaCapsulesBack, moringaCapsulesSide]}
-        align="right"
+        align="left"
         viewHref="/products/moringa-capsules"
+        buyHref="/shop"
+      />
+      <ProductShowcase
+        title="Moringa Powder"
+        description="Fine-milled for smooth mixing in smoothies and recipes."
+        image={moringaPowderFront}
+        images={[moringaPowderFront, moringaPowderBack, moringaPowderSide]}
+        align="right"
+        viewHref="/products/moringa-powder"
         buyHref="/shop"
       />
       <MidCTABanner />

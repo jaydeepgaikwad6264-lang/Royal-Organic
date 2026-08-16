@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useClientOnly } from '../lib/useClientOnly'
 import { products } from '../data/products'
-import { formatUSD } from '../lib/format'
+import { formatINR } from '../lib/format'
 
 export default function Navbar() {
   const { cart, totalItems, totalPrice, removeFromCart, updateQuantity, loading: cartLoading, fetchCart } = useCart()
@@ -103,7 +103,7 @@ export default function Navbar() {
                               </div>
                               <div className="flex-1">
                                 <p className="font-semibold text-gray-800">{product?.name}</p>
-                                <p className="text-sm text-gray-500">{formatUSD(item.pricePerUnit)} per unit</p>
+                                <p className="text-sm text-gray-500">{formatINR(item.pricePerUnit)} per unit</p>
                                 <div className="flex items-center gap-2 mt-2">
                                   <button
                                     onClick={async () => {
@@ -139,7 +139,7 @@ export default function Navbar() {
                                 </div>
                               </div>
                               <div className="text-right">
-                                <p className="font-bold text-gray-800">{formatUSD(item.quantity * item.pricePerUnit)}</p>
+                                <p className="font-bold text-gray-800">{formatINR(item.quantity * item.pricePerUnit)}</p>
                                 <button
                                   onClick={async () => {
                                     setProcessing(item.productId)
@@ -166,7 +166,7 @@ export default function Navbar() {
                     <div className="p-4 bg-gray-50 rounded-b-xl">
                       <div className="flex justify-between items-center mb-4">
                         <span className="text-gray-700 font-semibold">Total:</span>
-                        <span className="text-xl font-bold text-emerald-800">{formatUSD(totalPrice)}</span>
+                        <span className="text-xl font-bold text-emerald-800">{formatINR(totalPrice)}</span>
                       </div>
                       <Link href="/cart" onClick={() => setShowMiniCart(false)} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg font-semibold text-center block transition-colors">
                         View Cart & Checkout

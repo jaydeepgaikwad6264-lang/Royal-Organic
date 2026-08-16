@@ -181,9 +181,36 @@ Because of that, no extra frontend code change is required if `NEXT_PUBLIC_API_B
 
 If you are using Google login, also update your Google Cloud Console settings:
 
-- Add the backend callback URL as an authorized redirect URI:
-  - `https://royal-organic-ten.vercel.app/api/auth/google/callback`
-- Add your deployed frontend and backend domains where required in Google Cloud Console
+### Authorized JavaScript Origins
+
+Add these in Google Cloud Console under `OAuth 2.0 Client IDs` -> `Authorized JavaScript origins`:
+
+- Local frontend: `http://localhost:3000`
+- Local frontend if you use port 3001: `http://localhost:3001`
+- Production frontend: `https://your-frontend-domain.vercel.app`
+
+Do not add the callback path here. Only add the site origin.
+
+Example:
+
+- `https://royal-organics.vercel.app`
+
+### Authorized Redirect URIs
+
+Add these in Google Cloud Console under `OAuth 2.0 Client IDs` -> `Authorized redirect URIs`:
+
+- Local backend callback: `http://localhost:4000/api/auth/google/callback`
+- Production backend callback: `https://your-backend-domain.vercel.app/api/auth/google/callback`
+
+Example:
+
+- `https://royal-organic-ten.vercel.app/api/auth/google/callback`
+
+### Important
+
+- `Authorized JavaScript origins` should use the frontend domain only
+- `Authorized redirect URIs` should use the backend callback URL only
+- Make sure `GOOGLE_CALLBACK_URL` in the backend Vercel environment exactly matches the production redirect URI
 - Make sure the backend `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` match the same Google app
 
 ## Deployment Order

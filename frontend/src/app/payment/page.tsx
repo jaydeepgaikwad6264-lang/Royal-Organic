@@ -1,134 +1,172 @@
 'use client'
 import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useCart } from '../../lib/cartContext'
-import { api, OrderItem } from '../../lib/api'
-import { formatUSD } from '../../lib/format'
+import { api, OrderItem, Order } from '../../lib/api'
+import { formatINR } from '../../lib/format'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { loadStripe } from '@stripe/stripe-js'
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import Link from 'next/link'
 import { useClientOnly } from '../../lib/useClientOnly'
 import { products } from '../../data/products'
+import Script from 'next/script'
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')
-
-function CheckoutForm({ clientSecret, onSuccess }: { clientSecret: string; onSuccess: () => void }) {
-  const stripe = useStripe()
-  const elements = useElements()
-  const [error, setError] = useState<string | null>(null)
-  const [processing, setProcessing] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!stripe || !elements) return
-
-    setProcessing(true)
-    setError(null)
-
-    const { error: submitError } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/my-orders`,
-      },
-      redirect: 'if_required',
-    })
-
-    if (submitError) {
-      setError(submitError.message || 'Payment failed')
-    } else {
-      onSuccess()
-    }
-    setProcessing(false)
+declare global {
+  interface Window {
+    Razorpay?: any
   }
+}
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
-      {error && <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg">{error}</div>}
-      <button
-        type="submit"
-        disabled={!stripe || processing}
-        className="w-full bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 disabled:opacity-50 text-gray-900 py-4 rounded-xl font-bold text-xl shadow-lg hover:shadow-xl transition-all"
-      >
-        {processing ? 'Processing...' : 'Pay Now'}
-      </button>
-    </form>
-  )
+type RazorpayResponse = {
+  razorpay_order_id: string
+  razorpay_payment_id: string
+  razorpay_signature: string
 }
 
 function PaymentPageContent() {
   const { cart, totalPrice, clearCart } = useCart()
-  const [clientSecret, setClientSecret] = useState<string | null>(null)
-  const [orderId, setOrderId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [displayProducts, setDisplayProducts] = useState<OrderItem[]>(cart)
+  const [currentOrder, setCurrentOrder] = useState<Order | null>(null)
+  const [processing, setProcessing] = useState(false)
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false)
   const searchParams = useSearchParams()
   const router = useRouter()
   const isClient = useClientOnly()
 
-  const initPayment = useCallback(async () => {
+  const initOrderAndRazorpay = useCallback(async () => {
     try {
-      const order = await api.createOrder(cart)
-      const payment = await api.createPaymentIntent(order._id)
-      setOrderId(order._id)
-      setClientSecret(payment.clientSecret)
+      setLoading(true)
+      setError('')
+
+      let orderId = searchParams.get('orderId')
+      const addressId = searchParams.get('address') || undefined
+
+      if (orderId) {
+        const tempProducts = localStorage.getItem('temp_order_products')
+        if (tempProducts) {
+          setDisplayProducts(JSON.parse(tempProducts))
+        }
+      } else if (cart.length > 0) {
+        const order = await api.createOrder(cart, addressId)
+        orderId = order._id
+        setCurrentOrder(order)
+      } else {
+        setLoading(false)
+        return
+      }
+
+      if (!orderId) {
+        setError('Order not found')
+        setLoading(false)
+        return
+      }
+
+      const rpOrder = await api.createRazorpayOrder(orderId)
+      if (!currentOrder) {
+        setCurrentOrder(null)
+      }
+
+      if (typeof window !== 'undefined' && window.Razorpay) {
+        setRazorpayLoaded(true)
+      }
+
+      setLoading(false)
     } catch (err: any) {
+      console.error(err)
       setError(err.message || 'Failed to initialize payment')
-    } finally {
       setLoading(false)
     }
-  }, [cart])
+  }, [cart, searchParams])
 
   useEffect(() => {
     if (isClient) {
-      const orderIdFromQuery = searchParams.get('orderId')
-      if (orderIdFromQuery) {
-        // If we have an orderId, use the temp products from localStorage
-        const tempProducts = localStorage.getItem('temp_order_products')
-        if (tempProducts) {
-          const parsedProducts = JSON.parse(tempProducts) as OrderItem[]
-          setDisplayProducts(parsedProducts)
-          setOrderId(orderIdFromQuery)
-          // Create payment intent for the existing order
-          api.createPaymentIntent(orderIdFromQuery)
-            .then((data) => {
-              setClientSecret(data.clientSecret)
-              setLoading(false)
-            })
-            .catch((err) => {
-              setError(err.message || 'Failed to initialize payment')
-              setLoading(false)
-            })
-          return
-        }
-      }
-
-      // Regular flow with cart
-      if (cart.length > 0) {
-        initPayment()
-      } else {
-        setLoading(false)
-      }
+      initOrderAndRazorpay()
     }
-  }, [isClient, searchParams, cart, initPayment])
+  }, [isClient, initOrderAndRazorpay])
 
-  async function handlePaymentSuccess() {
+  async function handlePayment() {
+    if (processing) return
+    if (!currentOrder) {
+      setError('Order not ready')
+      return
+    }
+
     try {
-      if (orderId) {
-        await api.getOrderById(orderId)
-        clearCart()
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('temp_order_products')
-        }
-        router.push('/my-orders')
+      setProcessing(true)
+      setError('')
+
+      const rpOrder = await api.createRazorpayOrder(currentOrder._id)
+
+      if (!window.Razorpay) {
+        setError('Razorpay SDK not loaded. Please try again.')
+        setProcessing(false)
+        return
       }
+
+      const options = {
+        key: rpOrder.keyId,
+        amount: rpOrder.amountInPaise,
+        currency: rpOrder.currency,
+        name: 'Royal Organics',
+        description: 'Moringa Wellness Products',
+        order_id: rpOrder.razorpayOrderId,
+        handler: async function (response: RazorpayResponse) {
+          try {
+            const result = await api.verifyRazorpayPayment({
+              orderId: currentOrder!._id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            })
+            if (result.success) {
+              await clearCart()
+              localStorage.removeItem('temp_order_products')
+              router.push(`/thank-you?orderId=${result.orderId}&paymentId=${result.razorpayPaymentId}`)
+            }
+          } catch (err: any) {
+            setError(err.message || 'Payment verification failed')
+            setProcessing(false)
+          }
+        },
+        prefill: {
+          name: rpOrder.user?.name || '',
+          email: rpOrder.user?.email || '',
+          contact: rpOrder.address?.contact || '',
+        },
+        notes: {
+          address: rpOrder.address ? `${rpOrder.address.line1}, ${rpOrder.address.city}, ${rpOrder.address.state} - ${rpOrder.address.postal_code}` : '',
+        },
+        theme: {
+          color: '#047857',
+        },
+        modal: {
+          ondismiss: function () {
+            setProcessing(false)
+          },
+        },
+      }
+
+      const rzp = new window.Razorpay(options)
+      rzp.on('payment.failed', function (res: any) {
+        setError(res?.error?.description || 'Payment failed. Please try again.')
+        setProcessing(false)
+      })
+      rzp.open()
     } catch (err: any) {
-      setError(err.message || 'Failed to confirm payment')
+      console.error(err)
+      setError(err.message || 'Failed to start payment')
+      setProcessing(false)
     }
   }
 
   if (!isClient) return null
+
+  const displayTotal = displayProducts.reduce((acc, item) => acc + item.quantity * item.pricePerUnit, 0)
+  const savings = displayProducts.reduce((acc, item) => {
+    const product = products.find(p => p.id === item.productId)
+    const original = product ? product.originalPrice : item.pricePerUnit * 1.3
+    return acc + ((original - item.pricePerUnit) * item.quantity)
+  }, 0)
 
   if (displayProducts.length === 0) {
     return (
@@ -145,83 +183,133 @@ function PaymentPageContent() {
     )
   }
 
-  const displayTotal = displayProducts.reduce((acc, item) => acc + item.quantity * item.pricePerUnit, 0)
-  const savings = displayProducts.reduce((acc, item) => acc + item.pricePerUnit * 0.3 * item.quantity, 0)
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-emerald-50 py-12">
-      <div className="container max-w-6xl mx-auto">
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
-              <h1 className="text-3xl font-bold text-gray-800 mb-8">Complete Your Order</h1>
+    <>
+      <Script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        strategy="afterInteractive"
+        onLoad={() => setRazorpayLoaded(true)}
+        onError={() => setError('Failed to load payment gateway. Please refresh.')}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-emerald-50 py-12">
+        <div className="container max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+                <h1 className="text-3xl font-bold text-gray-800 mb-8">Complete Your Order</h1>
 
-              {loading ? (
-                <div className="text-center py-16 text-gray-500 text-xl">Initializing payment...</div>
-              ) : error ? (
-                <div className="bg-red-100 border border-red-300 text-red-700 px-6 py-4 rounded-xl mb-6">
-                  {error}
-                </div>
-              ) : clientSecret ? (
-                <Elements stripe={stripePromise} options={{ clientSecret }}>
-                  <CheckoutForm clientSecret={clientSecret} onSuccess={handlePaymentSuccess} />
-                </Elements>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 sticky top-28">
-              <h3 className="text-2xl font-bold text-gray-800 mb-6">Order Summary</h3>
-              
-              <div className="space-y-4 mb-6">
-                {displayProducts.map((item, index) => {
-                  const product = products.find(p => p.id === item.productId)
-                  return (
-                    <div key={index} className="flex items-center gap-4 pb-4 border-b border-gray-100">
-                      <div className="w-14 h-14 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-lg flex items-center justify-center text-2xl">
-                        🌱
+                {loading ? (
+                  <div className="text-center py-16 text-gray-500 text-xl">Initializing payment...</div>
+                ) : error ? (
+                  <div className="mb-6">
+                    <div className="bg-red-100 border border-red-300 text-red-700 px-6 py-4 rounded-xl mb-6">
+                      {error}
+                    </div>
+                    <button
+                      onClick={handlePayment}
+                      disabled={processing || !razorpayLoaded}
+                      className="w-full bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 disabled:opacity-50 text-gray-900 py-4 rounded-xl font-bold text-xl shadow-lg hover:shadow-xl transition-all"
+                    >
+                      {processing ? 'Processing...' : '🔄 Retry Payment'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-emerald-200 rounded-2xl">
+                      <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center text-3xl">
+                        🔐
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-gray-800">{product?.name}</p>
-                        <p className="text-sm text-gray-500">{item.quantity} units</p>
+                        <h2 className="text-xl font-bold text-gray-800">Secure Checkout via Razorpay</h2>
+                        <p className="text-gray-600 text-sm mt-1">
+                          Pay using UPI, Cards, Net Banking, Wallets — 100% secure & encrypted
+                        </p>
                       </div>
-                      <p className="font-bold text-gray-800">{formatUSD(item.quantity * item.pricePerUnit)}</p>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">Total Amount</p>
+                        <p className="text-3xl font-bold text-emerald-700">{formatINR(displayTotal)}</p>
+                      </div>
                     </div>
-                  )
-                })}
-              </div>
 
-              <div className="space-y-3 mb-8">
-                <div className="flex justify-between text-gray-700">
-                  <span>Subtotal ({displayProducts.length} items)</span>
-                  <span className="font-semibold">{formatUSD(displayTotal)}</span>
-                </div>
-                <div className="flex justify-between text-green-600">
-                  <span>Your Savings</span>
-                  <span className="font-semibold">- {formatUSD(Math.round(savings))}</span>
-                </div>
-                <div className="flex justify-between text-gray-700">
-                  <span>Delivery</span>
-                  <span className="font-semibold text-green-600">Free</span>
-                </div>
-              </div>
+                    <button
+                      onClick={handlePayment}
+                      disabled={processing || !razorpayLoaded}
+                      className="w-full bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 disabled:opacity-50 text-gray-900 py-5 rounded-2xl font-bold text-2xl shadow-xl hover:shadow-2xl transition-all flex items-center justify-center gap-3"
+                    >
+                      {processing ? (
+                        <>⏳ Processing Payment...</>
+                      ) : !razorpayLoaded ? (
+                        <>⏳ Loading Payment Gateway...</>
+                      ) : (
+                        <>✅ Pay {formatINR(displayTotal)} Now</>
+                      )}
+                    </button>
 
-              <div className="border-t-2 border-gray-200 pt-4 mb-8">
-                <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold text-gray-800">Total</span>
-                  <span className="text-3xl font-bold text-emerald-700">{formatUSD(displayTotal)}</span>
-                </div>
+                    <div className="flex items-center justify-center gap-4 py-2 text-sm text-gray-500">
+                      <span className="flex items-center gap-1">🔒 SSL Secured</span>
+                      <span className="text-gray-300">|</span>
+                      <span className="flex items-center gap-1">🏛️ RBI Regulated</span>
+                      <span className="text-gray-300">|</span>
+                      <span className="flex items-center gap-1">⚡ Instant</span>
+                    </div>
+                  </div>
+                )}
               </div>
+            </div>
 
-              <Link href="/cart" className="w-full text-center text-gray-600 hover:text-emerald-600 font-medium transition-colors">
-                ← Back to Cart
-              </Link>
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 sticky top-28">
+                <h3 className="text-2xl font-bold text-gray-800 mb-6">Order Summary</h3>
+                
+                <div className="space-y-4 mb-6">
+                  {displayProducts.map((item, index) => {
+                    const product = products.find(p => p.id === item.productId)
+                    return (
+                      <div key={index} className="flex items-center gap-4 pb-4 border-b border-gray-100">
+                        <div className="w-14 h-14 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-lg flex items-center justify-center text-2xl">
+                          🌱
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-800">{product?.name}</p>
+                          <p className="text-sm text-gray-500">{item.quantity} units</p>
+                        </div>
+                        <p className="font-bold text-gray-800">{formatINR(item.quantity * item.pricePerUnit)}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="space-y-3 mb-8">
+                  <div className="flex justify-between text-gray-700">
+                    <span>Subtotal ({displayProducts.length} items)</span>
+                    <span className="font-semibold">{formatINR(displayTotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-green-600">
+                    <span>Your Savings</span>
+                    <span className="font-semibold">- {formatINR(Math.round(savings))}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-700">
+                    <span>Delivery</span>
+                    <span className="font-semibold text-green-600">Free</span>
+                  </div>
+                </div>
+
+                <div className="border-t-2 border-gray-200 pt-4 mb-8">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xl font-bold text-gray-800">Total</span>
+                    <span className="text-3xl font-bold text-emerald-700">{formatINR(displayTotal)}</span>
+                  </div>
+                </div>
+
+                <Link href="/cart" className="w-full text-center text-gray-600 hover:text-emerald-600 font-medium transition-colors">
+                  ← Back to Cart
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 

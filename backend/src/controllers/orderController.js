@@ -22,13 +22,16 @@ export async function createOrder(req, res) {
       totalAmount += item.quantity * item.pricePerUnit
     })
 
-    const order = await Order.create({
+    const orderData = {
       user: userId,
       products,
       quantity: totalQuantity,
       totalAmount,
       status: 'pending',
-    })
+    }
+    if (addressId) orderData.addressId = addressId
+
+    const order = await Order.create(orderData)
 
     res.status(201).json(order)
   } catch (error) {
@@ -40,7 +43,7 @@ export async function createOrder(req, res) {
 export async function updateOrder(req, res) {
   try {
     const { id } = req.params
-    const { products } = req.body
+    const { products, addressId } = req.body
     const userId = req.user.id
 
     let totalQuantity = 0
@@ -51,9 +54,16 @@ export async function updateOrder(req, res) {
       totalAmount += item.quantity * item.pricePerUnit
     })
 
+    const updateData = {
+      products,
+      quantity: totalQuantity,
+      totalAmount,
+    }
+    if (addressId) updateData.addressId = addressId
+
     const order = await Order.findOneAndUpdate(
       { _id: id, user: userId, status: 'pending' },
-      { products, quantity: totalQuantity, totalAmount },
+      updateData,
       { new: true }
     )
 
@@ -101,7 +111,7 @@ export async function createPaymentIntent(req, res) {
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(order.totalAmount * 100), // Stripe uses cents
-      currency: 'usd',
+      currency: 'inr',
       metadata: { orderId: order._id.toString() },
       automatic_payment_methods: { enabled: true },
     })
@@ -143,7 +153,9 @@ export async function confirmPayment(req, res) {
 export async function getOrders(req, res) {
   try {
     const userId = req.user.id
-    const orders = await Order.find({ user: userId }).sort({ createdAt: -1 })
+    const orders = await Order.find({ user: userId })
+      .populate('addressId')
+      .sort({ createdAt: -1 })
     res.json(orders)
   } catch (error) {
     console.error(error)
@@ -155,7 +167,7 @@ export async function getOrderById(req, res) {
   try {
     const { id } = req.params
     const userId = req.user.id
-    const order = await Order.findOne({ _id: id, user: userId })
+    const order = await Order.findOne({ _id: id, user: userId }).populate('addressId')
 
     if (!order) {
       return res.status(404).json({ error: 'Order not found' })

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import type { Product } from '../types/product'
-import { formatUSD } from '../lib/format'
+import { formatINR } from '../lib/format'
 import { useCart } from '../lib/cartContext'
 import { useClientOnly } from '../lib/useClientOnly'
 
@@ -17,6 +17,8 @@ export default function ProductCard({ product }: { product: Product }) {
   const isClient = useClientOnly()
   const router = useRouter()
 
+  const discountPercent = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+
   useEffect(() => {
     if (isClient) {
       setIsLoggedIn(!!localStorage.getItem('token'))
@@ -26,6 +28,8 @@ export default function ProductCard({ product }: { product: Product }) {
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    
+    if (!product.inStock) return
     
     if (!isLoggedIn) {
       alert('Please log in to add items to your cart!')
@@ -56,9 +60,9 @@ export default function ProductCard({ product }: { product: Product }) {
 
   return (
     <motion.article
-      whileHover={{ y: -8, scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-lg hover:shadow-2xl transition-all"
+      whileHover={product.inStock ? { y: -8, scale: 1.02 } : {}}
+      whileTap={product.inStock ? { scale: 0.98 } : {}}
+      className={`rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-lg transition-all relative ${product.inStock ? 'hover:shadow-2xl' : 'opacity-75'}`}
     >
       <Link href={`/products/${product.slug}`} aria-label={`View ${product.name}`} className="block">
         <div className="relative h-64 overflow-hidden">
@@ -66,9 +70,16 @@ export default function ProductCard({ product }: { product: Product }) {
             src={product.image}
             alt={product.name}
             fill
-            className="object-cover transition-transform hover:scale-110"
+            className={`object-cover transition-transform ${product.inStock ? 'hover:scale-110' : ''}`}
             sizes="(max-width: 768px) 100vw, 33vw"
           />
+          {!product.inStock && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+              <span className="bg-red-600 text-white px-6 py-3 rounded-lg text-xl font-bold shadow-lg">
+                OUT OF STOCK
+              </span>
+            </div>
+          )}
           {product.category === 'powder' && (
             <span className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
               100% Pure
@@ -91,19 +102,19 @@ export default function ProductCard({ product }: { product: Product }) {
           <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
           
           <div className="flex items-baseline gap-3 mb-4">
-            <div className="text-3xl font-bold text-emerald-700">{formatUSD(product.price)}</div>
-            <div className="text-gray-400 line-through text-sm">{formatUSD(Math.round(product.price * 1.3))}</div>
-            <span className="text-green-600 text-sm font-bold">23% OFF</span>
+            <div className="text-3xl font-bold text-emerald-700">{formatINR(product.price)}</div>
+            <div className="text-gray-400 line-through text-sm">{formatINR(product.originalPrice)}</div>
+            <span className="text-green-600 text-sm font-bold">{discountPercent}% OFF</span>
           </div>
           
           <p className="text-sm text-gray-500 mb-4">
-            <span className="text-gray-400">per unit</span> • <span className="text-emerald-600 font-semibold">Free delivery</span> on orders over $50
+            <span className="text-gray-400">per unit</span> • <span className="text-emerald-600 font-semibold">Free delivery</span> on orders over {formatINR(499)}
           </p>
         </div>
       </Link>
       
       <div className="px-6 pb-6">
-        {existingItem ? (
+        {existingItem && product.inStock ? (
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 bg-gray-100 rounded-full">
               <button
@@ -132,16 +143,20 @@ export default function ProductCard({ product }: { product: Product }) {
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-500">Total</p>
-              <p className="font-bold text-gray-800">{formatUSD(existingItem.quantity * existingItem.pricePerUnit)}</p>
+              <p className="font-bold text-gray-800">{formatINR(existingItem.quantity * existingItem.pricePerUnit)}</p>
             </div>
           </div>
         ) : (
           <button
             onClick={handleAddToCart}
-            disabled={processing}
-            className="w-full bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 disabled:opacity-50 text-gray-900 py-3 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all"
+            disabled={processing || !product.inStock}
+            className={`w-full py-3 rounded-xl font-bold text-lg shadow-lg transition-all ${
+              product.inStock
+                ? 'bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 hover:shadow-xl disabled:opacity-50'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
           >
-            {processing ? 'Adding...' : '🛒 Add to Cart (1 unit)'}
+            {product.inStock ? (processing ? 'Adding...' : '🛒 Add to Cart (1 unit)') : 'Out of Stock'}
           </button>
         )}
         {cartError && (

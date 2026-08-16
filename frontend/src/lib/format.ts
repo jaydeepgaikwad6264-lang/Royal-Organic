@@ -1,12 +1,12 @@
-export function formatUSD(value: number) {
-  return new Intl.NumberFormat('en-US', {
+export function formatINR(value: number) {
+  return new Intl.NumberFormat('en-IN', {
     style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 2,
+    currency: 'INR',
+    maximumFractionDigits: 0,
   }).format(value)
 }
 
-export const formatINR = formatUSD
+export const formatUSD = formatINR
 
 export function priceForOption(price: number, subscriptionPrice: number, option: 'onetime' | 'subscription') {
   return option === 'subscription' ? subscriptionPrice : price

@@ -29,8 +29,12 @@ export type Order = {
   products: OrderItem[]
   quantity: number
   totalAmount: number
-  status: 'pending' | 'paid' | 'shipped'
+  status: 'pending' | 'paid' | 'shipped' | 'failed' | 'refunded'
   paymentIntentId?: string
+  razorpayOrderId?: string
+  razorpayPaymentId?: string
+  razorpaySignature?: string
+  addressId?: string | Address
   createdAt: string
   updatedAt: string
 }
@@ -65,6 +69,35 @@ export type Cart = {
   updatedAt: string
 }
 
+export type RazorpayOrderResponse = {
+  orderId: string
+  razorpayOrderId: string
+  amount: number
+  amountInPaise: number
+  currency: string
+  keyId: string
+  user: { name: string; email: string }
+  address?: {
+    name: string
+    contact: string
+    line1: string
+    line2?: string
+    city: string
+    state: string
+    postal_code: string
+    country: string
+  }
+  receipt: string
+}
+
+export type RazorpayVerifyResponse = {
+  success: boolean
+  orderId: string
+  status: string
+  amount: number
+  razorpayPaymentId: string
+}
+
 export const api = {
   login: (email: string, password: string) => request<AuthResponse>('/api/auth/login', { method: 'POST', json: { email, password } }),
   register: (name: string, email: string, password: string) =>
@@ -91,12 +124,24 @@ export const api = {
   clearCart: () => request<Cart>('/api/cart', { method: 'DELETE' }),
 
   // Orders
-  createOrder: (products: OrderItem[]) => request<Order>('/api/orders', { method: 'POST', json: { products } }),
-  updateOrder: (id: string, products: OrderItem[]) => request<Order>(`/api/orders/${id}`, { method: 'PUT', json: { products } }),
+  createOrder: (products: OrderItem[], addressId?: string) =>
+    request<Order>('/api/orders', { method: 'POST', json: { products, addressId } }),
+  updateOrder: (id: string, products: OrderItem[], addressId?: string) =>
+    request<Order>(`/api/orders/${id}`, { method: 'PUT', json: { products, addressId } }),
   deleteOrder: (id: string) => request<void>(`/api/orders/${id}`, { method: 'DELETE' }),
   createPaymentIntent: (orderId: string) =>
     request<{ clientSecret: string; orderId: string }>('/api/orders/create-payment-intent', { method: 'POST', json: { orderId } }),
   confirmPayment: (paymentIntentId: string) => request<Order>('/api/orders/confirm-payment', { method: 'POST', json: { paymentIntentId } }),
   getOrders: () => request<Order[]>('/api/orders'),
   getOrderById: (id: string) => request<Order>(`/api/orders/${id}`),
+
+  // Razorpay
+  createRazorpayOrder: (orderId: string) =>
+    request<RazorpayOrderResponse>('/api/razorpay/create-order', { method: 'POST', json: { orderId } }),
+  verifyRazorpayPayment: (data: {
+    orderId: string
+    razorpayOrderId: string
+    razorpayPaymentId: string
+    razorpaySignature: string
+  }) => request<RazorpayVerifyResponse>('/api/razorpay/verify-payment', { method: 'POST', json: data }),
 }

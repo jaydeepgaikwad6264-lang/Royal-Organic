@@ -16,6 +16,7 @@ export interface Product {
   image: string | StaticImageData
   images: (string | StaticImageData)[]
   price: number
+  originalPrice: number
   subscriptionPrice: number
   subscriptionInterval: 'monthly'
   inStock: boolean

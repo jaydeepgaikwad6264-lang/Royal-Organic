@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { formatUSD } from '../lib/format'
+import { formatINR } from '../lib/format'
 import { useCart } from '../lib/cartContext'
 import { products } from '../data/products'
 import { useClientOnly } from '../lib/useClientOnly'
@@ -39,7 +39,7 @@ export default function BulkPurchaseBox({
   }
 
   const total = unitPrice * qty
-  const isValid = qty >= 1 && product
+  const isValid = qty >= 1 && product && product.inStock
 
   async function handleAddToCart() {
     if (!isValid) return
@@ -79,17 +79,26 @@ export default function BulkPurchaseBox({
       <p id="bulk-help" className="mt-2 text-sm text-royal-muted">Adjust quantity as needed.</p>
       <div className="mt-4">
         <div className="text-lg">
-          Total: <span className="font-heading">{formatUSD(total)}</span> <span className="text-royal-muted">({formatUSD(unitPrice)} per unit)</span>
+          Total: <span className="font-heading">{formatINR(total)}</span> <span className="text-royal-muted">({formatINR(unitPrice)} per unit)</span>
         </div>
       </div>
-      <button
-        className={`btn-primary mt-4 px-6 py-3 ${!isValid || processing ? 'opacity-60 cursor-not-allowed' : ''}`}
-        onClick={handleAddToCart}
-        aria-disabled={!isValid || processing}
-        disabled={!isValid || processing}
-      >
-        {processing ? 'Adding...' : 'Add to Cart'}
-      </button>
+      {product && !product.inStock ? (
+        <button
+          className="mt-4 px-6 py-3 bg-gray-300 text-gray-500 cursor-not-allowed rounded-md"
+          disabled
+        >
+          Out of Stock
+        </button>
+      ) : (
+        <button
+          className={`btn-primary mt-4 px-6 py-3 ${!isValid || processing ? 'opacity-60 cursor-not-allowed' : ''}`}
+          onClick={handleAddToCart}
+          aria-disabled={!isValid || processing}
+          disabled={!isValid || processing}
+        >
+          {processing ? 'Adding...' : 'Add to Cart'}
+        </button>
+      )}
     </div>
   )
 }
