@@ -1,4 +1,3 @@
-// d:\mywork\Royal Organics\backend\src\services\shiprocketService.js
 /**
  * Shiprocket API Service
  * Handles authentication (JWT), order creation, AWB generation, tracking,
@@ -14,13 +13,9 @@ const SHIPROCKET_BASE = 'https://apiv2.shiprocket.in/v1/external'
 const SHIPROCKET_EMAIL = process.env.SHIPROCKET_EMAIL
 const SHIPROCKET_PASSWORD = process.env.SHIPROCKET_PASSWORD
 
-// In-memory token cache with expiry
 let cachedToken = null
-let tokenExpiresAt = 0 // epoch ms
+let tokenExpiresAt = 0
 
-/**
- * Internal HTTP helper. Do NOT log the Authorization header value.
- */
 async function shiprocketRequest(path, options = {}) {
   const url = `${SHIPROCKET_BASE}${path}`
   const token = await getShiprocketToken()
@@ -30,13 +25,16 @@ async function shiprocketRequest(path, options = {}) {
   }
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(url, {
+  const init = {
     method: options.method || 'GET',
     headers,
-    ...(options.body ? { body: JSON.stringify(options.body) } : {}),
-    // Safety timeout
-    signal: AbortSignal.timeout?.(30_000),
-  })
+  }
+  if (options.body) init.body = JSON.stringify(options.body)
+  if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+    init.signal = AbortSignal.timeout(30000)
+  }
+
+  const res = await fetch(url, init)
 
   let data
   try {
@@ -48,7 +46,7 @@ async function shiprocketRequest(path, options = {}) {
   if (!res.ok) {
     const msg =
       data?.message ||
-      data?.errors?.[0]?.message ||
+      (Array.isArray(data?.errors) && data.errors[0]?.message) ||
       `Shiprocket API error (${res.status}) for ${path}`
     console.error('[Shiprocket] Request failed:', path, res.status, data?.message || '')
     const err = new Error(msg)
@@ -60,10 +58,6 @@ async function shiprocketRequest(path, options = {}) {
   return data
 }
 
-/**
- * Authenticate with Shiprocket and return a JWT token.
- * Cached for ~23h (Shiprocket tokens are valid for ~24h).
- */
 export async function getShiprocketToken() {
   if (!SHIPROCKET_EMAIL || !SHIPROCKET_PASSWORD) {
     console.warn('[Shiprocket] Credentials not configured (SHIPROCKET_EMAIL / SHIPROCKET_PASSWORD)')
@@ -90,7 +84,7 @@ export async function getShiprocketToken() {
       throw new Error(data?.message || 'Shiprocket authentication failed')
     }
     cachedToken = data.token
-    tokenExpiresAt = now + 23 * 60 * 60 * 1000 // 23h safety margin
+    tokenExpiresAt = now + 23 * 60 * 60 * 1000
     return cachedToken
   } catch (err) {
     console.error('[Shiprocket] Auth error:', err.message)
@@ -98,15 +92,8 @@ export async function getShiprocketToken() {
   }
 }
 
-/**
- * Map internal order data to the Shiprocket adhoc-order request body.
- *
- * Product dimensions/weights: since Royal Organics sells lightweight
- * moringa products, we use sensible defaults that can be tuned per SKU.
- */
 export function buildShiprocketOrderPayload(order, user, address) {
   const orderItems = order.products.map(item => {
-    // Derive basic SKU + defaults based on the product id
     const isCapsules = /capsule/i.test(item.productId)
     const name = isCapsules ? 'Organic Moringa Capsules' : 'Organic Moringa Powder'
     const sku = isCapsules ? 'MOR-CAP-120' : 'MOR-POW-100G'
@@ -117,13 +104,10 @@ export function buildShiprocketOrderPayload(order, user, address) {
       selling_price: item.pricePerUnit,
       discount: '',
       tax: '',
-      // HSN for herbal/moringa food supplements (India)
       hsn: 21069099,
     }
   })
 
-  // Aggregate dimensions: estimate based on total quantity.
-  // Capsules bottle approx 6x6x12 cm, 250 g; Powder pack approx 10x6x14 cm, 120 g.
   let totalWeightKg = 0
   let lengthCm = 10
   let breadthCm = 8
@@ -138,7 +122,6 @@ export function buildShiprocketOrderPayload(order, user, address) {
       heightCm += 14 * item.quantity
     }
   })
-  // Caps to avoid unrealistic dims when stacking
   lengthCm = Math.min(lengthCm, 30)
   breadthCm = Math.min(breadthCm, 25)
   heightCm = Math.min(heightCm, 40)
@@ -148,7 +131,6 @@ export function buildShiprocketOrderPayload(order, user, address) {
   const [firstName, ...rest] = (fullName || '').split(' ')
   const lastName = rest.join(' ') || ''
 
-  // Shiprocket expects 10-digit Indian phone; strip +91 and non-digits, keep last 10
   const rawPhone = String(address?.phone || user?.phone || '0000000000')
   const digits = rawPhone.replace(/\D/g, '')
   const billingPhone = digits.length >= 10 ? digits.slice(-10) : digits.padEnd(10, '0')
@@ -185,16 +167,12 @@ export function buildShiprocketOrderPayload(order, user, address) {
   }
 }
 
-/**
- * Step 1: Create the Shiprocket adhoc order.
- * Returns { shiprocketOrderId, shipmentId, status, ... }
- */
 export async function createShiprocketOrder(order, user, address) {
   const body = buildShiprocketOrderPayload(order, user, address)
   const data = await shiprocketRequest('/orders/create/adhoc', { method: 'POST', body })
   return {
     shiprocketOrderId: data.order_id,
-    shipmentId: data.shipment_id || data.shipment_ids?.[0],
+    shipmentId: data.shipment_id || (Array.isArray(data.shipment_ids) && data.shipment_ids[0]),
     status: data.status,
     statusMessage: data.message,
     awb: data.awb_code || '',
@@ -209,10 +187,6 @@ export async function createShiprocketOrder(order, user, address) {
   }
 }
 
-/**
- * Step 2 (optional): Explicitly request AWB assignment. Some Shiprocket
- * plans auto-assign AWB on order creation, but this guarantees one.
- */
 export async function assignAWB(shipmentId, courierId) {
   const body = { shipment_id: Number(shipmentId) }
   if (courierId) body.courier_id = Number(courierId)
@@ -225,17 +199,15 @@ export async function assignAWB(shipmentId, courierId) {
   }
 }
 
-/**
- * Fetch tracking info by AWB code.
- */
 export async function getTrackingByAWB(awb) {
   if (!awb) throw new Error('AWB required for tracking')
   const data = await shiprocketRequest(`/courier/track/awb/${encodeURIComponent(awb)}`)
   const tracking = data?.tracking_data?.tracking || data?.tracking_data || {}
   const trackData = Array.isArray(tracking) ? tracking[0] : tracking
-  const activities = Array.isArray(data?.tracking_data?.track_data?.activities)
-    ? data.tracking_data.track_data.activities
-    : []
+  const activities =
+    (data?.tracking_data?.track_data && Array.isArray(data.tracking_data.track_data.activities))
+      ? data.tracking_data.track_data.activities
+      : []
   return {
     awb,
     courierName: trackData?.courier_name || data?.courier_name || '',
@@ -249,15 +221,16 @@ export async function getTrackingByAWB(awb) {
   }
 }
 
-/**
- * Fetch tracking by Shiprocket shipment ID.
- */
 export async function getTrackingByShipmentId(shipmentId) {
   if (!shipmentId) throw new Error('shipment_id required')
-  const data = await shiprocketRequest(
-    `/courier/track/shipment/${encodeURIComponent(shipmentId)}`,
-  )
+  const data = await shiprocketRequest(`/courier/track/shipment/${encodeURIComponent(shipmentId)}`)
   const track = data?.tracking_data || data?.shipment_track || data
+  const acts =
+    (track?.track_data && Array.isArray(track.track_data.activities))
+      ? track.track_data.activities
+      : Array.isArray(track?.activities)
+      ? track.activities
+      : []
   return {
     shipmentId,
     courierName: track?.courier_name || '',
@@ -265,19 +238,12 @@ export async function getTrackingByShipmentId(shipmentId) {
     currentStatusId: track?.current_status_id,
     awb: track?.awb || track?.awb_code || data?.awb || '',
     trackingUrl: data?.tracking_url || '',
-    activities: Array.isArray(track?.track_data?.activities)
-      ? track.track_data.activities
-      : Array.isArray(track?.activities)
-      ? track.activities
-      : [],
+    activities: acts,
     lastUpdated: track?.updated_at || new Date().toISOString(),
     raw: data,
   }
 }
 
-/**
- * Cancel a shipment in Shiprocket. Useful if order is cancelled/refunded.
- */
 export async function cancelShipment(shipmentIds = []) {
   if (!Array.isArray(shipmentIds)) shipmentIds = [shipmentIds]
   const ids = shipmentIds.map(Number).filter(Boolean)
@@ -286,10 +252,6 @@ export async function cancelShipment(shipmentIds = []) {
   return shiprocketRequest('/orders/cancel/shipment', { method: 'POST', body })
 }
 
-/**
- * Check courier serviceability for a pincode + weight.
- * Useful pre-checkout warning for unserviceable areas.
- */
 export async function getServiceability(pickupPincode, deliveryPincode, weightKg, cod = false) {
   const params = new URLSearchParams({
     pickup_postcode: String(pickupPincode),
@@ -300,14 +262,6 @@ export async function getServiceability(pickupPincode, deliveryPincode, weightKg
   return shiprocketRequest(`/courier/serviceability?${params.toString()}`)
 }
 
-/**
- * Orchestrate the full post-paid shipping flow:
- *   create order → assign AWB → pull tracking → return summary
- *
- * Returns a flat object ready to be saved onto Order.shipping.
- * On partial failure, it returns whatever data was obtained so the
- * order record can be updated with SHIPPING_PENDING + error log.
- */
 export async function createFullShipment(order, user, address) {
   const result = {
     shiprocketOrderId: null,
@@ -328,7 +282,6 @@ export async function createFullShipment(order, user, address) {
   }
 
   try {
-    // 1. Create Shiprocket order
     const created = await createShiprocketOrder(order, user, address)
     result.shiprocketOrderId = created.shiprocketOrderId
     result.shipmentId = String(created.shipmentId || '')
@@ -340,11 +293,11 @@ export async function createFullShipment(order, user, address) {
     result.breadth = created.breadth
     result.height = created.height
     result.pickupLocation = created.pickupLocation
-    result.status = created.status && /created|new|ordered/i.test(String(created.status))
-      ? 'SHIPMENT_CREATED'
-      : 'ORDER_PLACED'
+    result.status =
+      created.status && /created|new|ordered/i.test(String(created.status))
+        ? 'SHIPMENT_CREATED'
+        : 'ORDER_PLACED'
 
-    // 2. Assign AWB if not already present
     if (!result.awb && result.shipmentId) {
       try {
         const awbRes = await assignAWB(result.shipmentId, result.courierId)
@@ -357,7 +310,6 @@ export async function createFullShipment(order, user, address) {
       }
     }
 
-    // 3. Pull latest tracking to get URL + current status
     if (result.awb || result.shipmentId) {
       try {
         const trackRes = result.awb
@@ -369,7 +321,7 @@ export async function createFullShipment(order, user, address) {
           result.status = normalizeShiprocketStatus(trackRes.currentStatus, trackRes.shipmentStatus)
         }
       } catch (_) {
-        // Tracking not available yet - not critical
+        // no-op
       }
     }
 
@@ -386,12 +338,6 @@ export async function createFullShipment(order, user, address) {
   return result
 }
 
-/**
- * Map Shiprocket's arbitrary status strings to our normalized enum.
- * Supported states:
- *   ORDER_PLACED, SHIPMENT_CREATED, PICKED_UP, IN_TRANSIT, OUT_FOR_DELIVERY,
- *   DELIVERED, CANCELLED, UNDELIVERED, RTO, DELAYED, SHIPPING_PENDING
- */
 export function normalizeShiprocketStatus(srStatus, shipmentStatus = '') {
   const s = String(srStatus || shipmentStatus || '').toLowerCase().trim()
   if (!s) return 'ORDER_PLACED'
@@ -407,6 +353,5 @@ export function normalizeShiprocketStatus(srStatus, shipmentStatus = '') {
   if (/\b(awb generated|label generated)\b/.test(s)) return 'AWB_GENERATED'
   if (/\b(shipment created|new order|order created)\b/.test(s)) return 'SHIPMENT_CREATED'
   if (/\b(pending|shipping pending)\b/.test(s)) return 'SHIPPING_PENDING'
-  // If none match but we have a string, keep track but fall through to IN_TRANSIT-ish
   return 'ORDER_PLACED'
 }
