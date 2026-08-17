@@ -26,12 +26,11 @@ const app = express()
 // Security and parsing
 app.use(helmet())
 app.use(cors({ origin: [process.env.CORS_ORIGIN, process.env.FRONTEND_URL].filter(Boolean), credentials: false }))
-// Use raw body for webhook endpoints that need exact bytes for signature check
+// Use raw body ONLY for Razorpay webhook (needs exact bytes for HMAC signature check).
+// All other endpoints (including Shiprocket webhook which validates via x-api-key header
+// and expects req.body as a parsed JSON object) use standard express.json().
 app.use((req, res, next) => {
-  if (
-    req.originalUrl === '/api/razorpay/webhook' ||
-    req.originalUrl.startsWith('/api/shiprocket/webhook')
-  ) {
+  if (req.originalUrl === '/api/razorpay/webhook') {
     express.raw({ type: 'application/json' })(req, res, next)
   } else {
     express.json({ limit: '1mb' })(req, res, next)
