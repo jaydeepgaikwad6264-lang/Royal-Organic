@@ -16,6 +16,7 @@ import contactRoutes from './routes/contactRoutes.js'
 import addressRoutes from './routes/addressRoutes.js'
 import cartRoutes from './routes/cartRoutes.js'
 import razorpayRoutes from './routes/razorpayRoutes.js'
+import shiprocketRoutes from './routes/shiprocketRoutes.js'
 import { notFound, errorHandler } from './middlewares/error.js'
 
 dotenv.config()
@@ -25,9 +26,12 @@ const app = express()
 // Security and parsing
 app.use(helmet())
 app.use(cors({ origin: [process.env.CORS_ORIGIN, process.env.FRONTEND_URL].filter(Boolean), credentials: false }))
-// Use raw body only for the razorpay webhook to verify signature
+// Use raw body for webhook endpoints that need exact bytes for signature check
 app.use((req, res, next) => {
-  if (req.originalUrl === '/api/razorpay/webhook') {
+  if (
+    req.originalUrl === '/api/razorpay/webhook' ||
+    req.originalUrl.startsWith('/api/shiprocket/webhook')
+  ) {
     express.raw({ type: 'application/json' })(req, res, next)
   } else {
     express.json({ limit: '1mb' })(req, res, next)
@@ -48,6 +52,7 @@ app.use('/api/addresses', addressRoutes)
 app.use('/api/contact', contactRoutes)
 app.use('/api/cart', cartRoutes)
 app.use('/api/razorpay', razorpayRoutes)
+app.use('/api/shiprocket', shiprocketRoutes)
 
 // 404 and errors
 app.use(notFound)

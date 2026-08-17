@@ -1,11 +1,65 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { api, Order, OrderItem, Address } from '../../lib/api'
+import { useEffect, useState, useCallback } from 'react'
+import { api, Order, OrderItem, Address, TrackingResponse } from '../../lib/api'
 import { formatINR } from '../../lib/format'
 import { products } from '../../data/products'
 import Link from 'next/link'
 import { useClientOnly } from '../../lib/useClientOnly'
 import { useRouter } from 'next/navigation'
+
+const SHIPPING_TIMELINE = [
+  { key: 'ORDER_PLACED', label: 'Order Placed', icon: '📝' },
+  { key: 'SHIPMENT_CREATED', label: 'Shipment Created', icon: '📦' },
+  { key: 'PICKED_UP', label: 'Picked Up', icon: '📤' },
+  { key: 'IN_TRANSIT', label: 'In Transit', icon: '🚚' },
+  { key: 'OUT_FOR_DELIVERY', label: 'Out for Delivery', icon: '🛵' },
+  { key: 'DELIVERED', label: 'Delivered', icon: '✅' },
+] as const
+
+type ShippingStatusBadge = { badge: string; label: string; icon: string; description: string }
+
+function getShippingStatusConfig(status?: string): ShippingStatusBadge {
+  const s = String(status || 'ORDER_PLACED').toUpperCase()
+  switch (s) {
+    case 'ORDER_PLACED':
+      return { badge: 'bg-slate-100 text-slate-700 border-slate-300', label: 'Order Placed', icon: '📝', description: 'Awaiting shipment creation' }
+    case 'SHIPPING_PENDING':
+      return { badge: 'bg-amber-100 text-amber-800 border-amber-300', label: 'Processing', icon: '⏳', description: 'Shipment scheduling in progress — retry if stuck' }
+    case 'SHIPMENT_CREATED':
+    case 'AWB_GENERATED':
+      return { badge: 'bg-sky-100 text-sky-800 border-sky-300', label: 'Shipment Created', icon: '📦', description: 'Package registered with courier partner' }
+    case 'PICKED_UP':
+      return { badge: 'bg-indigo-100 text-indigo-800 border-indigo-300', label: 'Picked Up', icon: '📤', description: 'Courier has picked up your package' }
+    case 'IN_TRANSIT':
+      return { badge: 'bg-blue-100 text-blue-800 border-blue-300', label: 'In Transit', icon: '🚚', description: 'Your package is on its way' }
+    case 'OUT_FOR_DELIVERY':
+      return { badge: 'bg-violet-100 text-violet-800 border-violet-300', label: 'Out for Delivery', icon: '🛵', description: 'Agent heading to your address' }
+    case 'DELIVERED':
+      return { badge: 'bg-emerald-100 text-emerald-800 border-emerald-300', label: 'Delivered', icon: '✅', description: 'Package delivered successfully' }
+    case 'CANCELLED':
+      return { badge: 'bg-gray-100 text-gray-800 border-gray-300', label: 'Cancelled', icon: '❌', description: 'Shipment was cancelled' }
+    case 'UNDELIVERED':
+      return { badge: 'bg-orange-100 text-orange-800 border-orange-300', label: 'Undelivered', icon: '⚠️', description: 'Delivery attempted — please contact courier' }
+    case 'RTO':
+      return { badge: 'bg-red-100 text-red-800 border-red-300', label: 'Return to Origin', icon: '↩️', description: 'Package being returned to seller' }
+    case 'DELAYED':
+      return { badge: 'bg-yellow-100 text-yellow-800 border-yellow-300', label: 'Delayed', icon: '⏰', description: 'Shipment is running behind schedule' }
+    default:
+      return { badge: 'bg-slate-100 text-slate-700 border-slate-300', label: s.replace(/_/g, ' '), icon: '📦', description: '' }
+  }
+}
+
+function getTimelineIndex(status?: string): number {
+  const s = String(status || 'ORDER_PLACED').toUpperCase()
+  if (s === 'AWB_GENERATED') return 1
+  if (s === 'DELIVERED') return 5
+  if (s === 'OUT_FOR_DELIVERY') return 4
+  if (s === 'IN_TRANSIT') return 3
+  if (s === 'PICKED_UP') return 2
+  if (s === 'SHIPMENT_CREATED') return 1
+  if (['CANCELLED', 'UNDELIVERED', 'RTO', 'DELAYED', 'SHIPPING_PENDING'].includes(s)) return -1
+  return 0
+}
 
 export default function MyOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
@@ -13,6 +67,11 @@ export default function MyOrdersPage() {
   const [error, setError] = useState('')
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null)
   const [editingProducts, setEditingProducts] = useState<OrderItem[]>([])
+  const [trackingOrderId, setTrackingOrderId] = useState<string | null>(null)
+  const [tracking, setTracking] = useState<TrackingResponse['tracking'] | null>(null)
+  const [loadingTracking, setLoadingTracking] = useState(false)
+  const [trackingError, setTrackingError] = useState('')
+  const [retryingOrderId, setRetryingOrderId] = useState<string | null>(null)
   const isClient = useClientOnly()
   const router = useRouter()
 
@@ -63,6 +122,40 @@ export default function MyOrdersPage() {
       router.push(`/payment?orderId=${orderId}`)
     } catch (err: any) {
       setError(err.message || 'Failed to retry payment')
+    }
+  }
+
+  const fetchTracking = useCallback(async (orderId: string) => {
+    setTrackingOrderId(orderId)
+    setLoadingTracking(true)
+    setTrackingError('')
+    try {
+      const res = await api.getOrderTracking(orderId)
+      setTracking(res.tracking)
+      // Also refresh the main list so inline cards reflect live data
+      const fresh = await api.getOrders()
+      setOrders(fresh)
+    } catch (err: any) {
+      setTrackingError(err.message || 'Failed to load tracking info')
+    } finally {
+      setLoadingTracking(false)
+    }
+  }, [])
+
+  async function handleRetryShipment(orderId: string) {
+    if (!confirm('Retry shipment creation for this order with Shiprocket?')) return
+    setRetryingOrderId(orderId)
+    try {
+      const res = await api.retryShipment(orderId)
+      if (res?.shipping) {
+        setOrders(prev => prev.map(o => o._id === orderId ? { ...o, shipping: res.shipping, shippingErrors: res.shippingErrors || o.shippingErrors } : o))
+      }
+      const cfg = getShippingStatusConfig(res?.shipping?.status)
+      alert(`Shipment retry complete. Status: ${cfg.label}`)
+    } catch (err: any) {
+      alert('Retry failed: ' + (err.message || 'Unknown error'))
+    } finally {
+      setRetryingOrderId(null)
     }
   }
 
@@ -414,6 +507,56 @@ export default function MyOrdersPage() {
                       </div>
                     )}
 
+                    {/* Shipping / Delivery Info Card */}
+                    {order.status !== 'pending' && order.status !== 'failed' && (
+                      <div className="bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-200 rounded-2xl p-3 sm:p-5">
+                        <div className="flex flex-wrap items-start sm:items-center justify-between gap-3 mb-3 sm:mb-4">
+                          <div>
+                            <h3 className="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2">
+                              🚚 Delivery & Shipment
+                            </h3>
+                          </div>
+                          <span className={`px-3 py-1.5 rounded-full font-bold text-xs sm:text-sm border inline-flex items-center gap-1.5 ${getShippingStatusConfig(order.shipping?.status).badge}`}>
+                            <span>{getShippingStatusConfig(order.shipping?.status).icon}</span>
+                            {getShippingStatusConfig(order.shipping?.status).label.toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 text-sm">
+                          {order.shipping?.courierName && (
+                            <div className="bg-white/70 rounded-xl p-3 border border-white/80">
+                              <p className="text-[10px] sm:text-xs uppercase tracking-wider text-gray-500 font-semibold">Courier Partner</p>
+                              <p className="font-bold text-gray-800 mt-1">{order.shipping.courierName}</p>
+                            </div>
+                          )}
+                          {order.shipping?.awb && (
+                            <div className="bg-white/70 rounded-xl p-3 border border-white/80">
+                              <p className="text-[10px] sm:text-xs uppercase tracking-wider text-gray-500 font-semibold">AWB Number</p>
+                              <p className="font-mono font-bold text-gray-800 mt-1 break-all">{order.shipping.awb}</p>
+                            </div>
+                          )}
+                          {order.shipping?.lastUpdated && (
+                            <div className="bg-white/70 rounded-xl p-3 border border-white/80">
+                              <p className="text-[10px] sm:text-xs uppercase tracking-wider text-gray-500 font-semibold">Last Updated</p>
+                              <p className="font-semibold text-gray-800 mt-1">
+                                {new Date(order.shipping.lastUpdated).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        {order.shipping?.status === 'SHIPPING_PENDING' && (
+                          <div className="mt-3 sm:mt-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-amber-800 text-xs sm:text-sm">
+                            <div className="flex items-start gap-2">
+                              <span className="text-lg">⚠️</span>
+                              <div>
+                                <p className="font-semibold">Shipment processing is temporarily queued.</p>
+                                <p className="text-amber-700 mt-0.5">{order.shippingErrors && order.shippingErrors[order.shippingErrors.length - 1]}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {!editingOrderId && (
                       <div className="pt-3 sm:pt-4 border-t border-gray-200 flex flex-wrap gap-2 sm:gap-3 justify-start">
                         {order.status === 'pending' && (
@@ -443,6 +586,26 @@ export default function MyOrdersPage() {
                             🔄 Try Again
                           </button>
                         )}
+                        {(order.status === 'paid' || order.status === 'shipped' || order.status === 'refunded') && (
+                          <>
+                            <button
+                              onClick={() => fetchTracking(order._id)}
+                              disabled={trackingOrderId === order._id && loadingTracking}
+                              className="bg-gradient-to-r from-blue-500 to-sky-600 hover:from-blue-600 hover:to-sky-700 disabled:opacity-60 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
+                            >
+                              {trackingOrderId === order._id && loadingTracking ? '⏳ Loading...' : '📍 Track Order'}
+                            </button>
+                            {order.shipping?.status === 'SHIPPING_PENDING' && (
+                              <button
+                                onClick={() => handleRetryShipment(order._id)}
+                                disabled={retryingOrderId === order._id}
+                                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-60 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
+                              >
+                                {retryingOrderId === order._id ? '⏳ Retrying...' : '🔁 Retry Shipment'}
+                              </button>
+                            )}
+                          </>
+                        )}
                         <Link
                           href={`/thank-you?orderId=${order._id}`}
                           className="bg-white border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold transition-colors flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
@@ -464,6 +627,174 @@ export default function MyOrdersPage() {
           </div>
         )}
       </div>
+
+      {/* Tracking Modal / Drawer */}
+      {trackingOrderId && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4" onClick={() => { setTrackingOrderId(null); setTracking(null); setTrackingError('') }}>
+          <div className="bg-white w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-3xl shadow-2xl" onClick={e => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="sticky top-0 z-10 bg-gradient-to-r from-sky-600 to-blue-700 text-white p-4 sm:p-6 rounded-t-2xl sm:rounded-t-3xl flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm opacity-90 font-medium">Shipment Tracking</p>
+                <p className="font-bold text-base sm:text-xl md:text-2xl font-mono mt-0.5 break-all">#{trackingOrderId}</p>
+              </div>
+              <button onClick={() => { setTrackingOrderId(null); setTracking(null); setTrackingError('') }} className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center text-xl font-bold flex-shrink-0">
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6 md:p-8 space-y-6">
+              {loadingTracking ? (
+                <div className="text-center py-12 sm:py-16 text-gray-500">
+                  <div className="animate-spin inline-block w-12 h-12 border-4 border-sky-200 border-t-sky-600 rounded-full mb-4" />
+                  <p className="text-lg">Fetching latest tracking information…</p>
+                </div>
+              ) : trackingError ? (
+                <div className="bg-red-50 border border-red-200 text-red-800 p-5 rounded-2xl">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">⚠️</span>
+                    <div>
+                      <p className="font-bold">Could not load tracking data</p>
+                      <p className="text-sm mt-1">{trackingError}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : tracking ? (
+                <>
+                  {/* Key shipment facts */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4">
+                      <p className="text-[10px] sm:text-xs uppercase tracking-wider text-sky-600 font-semibold">Current Status</p>
+                      <div className="mt-1.5 inline-flex items-center gap-1.5">
+                        <span className="text-lg">{getShippingStatusConfig(tracking.status).icon}</span>
+                        <p className="font-bold text-gray-800">{getShippingStatusConfig(tracking.status).label}</p>
+                      </div>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+                      <p className="text-[10px] sm:text-xs uppercase tracking-wider text-blue-600 font-semibold">Courier</p>
+                      <p className="font-bold text-gray-800 mt-1">{tracking.courierName || '—'}</p>
+                    </div>
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
+                      <p className="text-[10px] sm:text-xs uppercase tracking-wider text-indigo-600 font-semibold">AWB Number</p>
+                      <p className="font-mono font-bold text-gray-800 mt-1 break-all">{tracking.awb || '—'}</p>
+                    </div>
+                  </div>
+
+                  {tracking.trackingUrl && (
+                    <div className="flex justify-end">
+                      <a href={tracking.trackingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sky-700 hover:text-sky-800 font-semibold text-sm border border-sky-200 hover:border-sky-300 bg-sky-50 hover:bg-sky-100 px-4 py-2 rounded-xl transition-colors">
+                        🔗 Open on Courier Site
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Shipment Timeline */}
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 sm:mb-5 flex items-center gap-2">
+                      🛣️ Shipment Journey
+                    </h3>
+                    <div className="relative">
+                      {/* vertical line on md+ */}
+                      <div className="hidden sm:block absolute left-[22px] top-3 bottom-3 w-0.5 bg-gray-200"></div>
+                      <div className="space-y-3 sm:space-y-1">
+                        {SHIPPING_TIMELINE.map((step, i) => {
+                          const currentIdx = getTimelineIndex(tracking.status)
+                          const isTerminal = tracking.status === 'CANCELLED' || tracking.status === 'UNDELIVERED' || tracking.status === 'RTO' || tracking.status === 'DELAYED'
+                          const isDone = currentIdx >= 0 && i < currentIdx
+                          const isCurrentStep = currentIdx >= 0 && i === currentIdx
+                          const overrideCurrent = isTerminal && i === 0 ? false : false
+                          const showAsCurrent = !isTerminal && isCurrentStep
+                          return (
+                            <div key={step.key} className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl transition-colors relative z-10">
+                              <div className={`relative w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-lg sm:text-xl border-2 flex-shrink-0 transition-all shadow-sm ${isDone ? 'bg-emerald-500 border-emerald-500 text-white scale-100' : showAsCurrent ? 'bg-sky-500 border-sky-500 text-white shadow-lg ring-4 ring-sky-100 scale-110 animate-pulse' : 'bg-gray-100 border-gray-200 text-gray-400'}`}>
+                                {isDone && !showAsCurrent ? '✓' : step.icon}
+                              </div>
+                              <div className="flex-1 pt-1.5 sm:pt-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h4 className={`font-bold text-sm sm:text-base ${isDone || showAsCurrent ? 'text-gray-800' : 'text-gray-400'}`}>
+                                    {step.label}
+                                  </h4>
+                                  {showAsCurrent && (
+                                    <span className="text-[10px] uppercase tracking-wider bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full font-bold">
+                                      Now
+                                    </span>
+                                  )}
+                                  {isDone && (
+                                    <span className="text-[10px] uppercase tracking-wider bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">
+                                      Done
+                                    </span>
+                                  )}
+                                </div>
+                                {i === currentIdx && getShippingStatusConfig(tracking.status).description && (
+                                  <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                                    {getShippingStatusConfig(tracking.status).description}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                        {/* Terminal exception states */}
+                        {(['CANCELLED', 'UNDELIVERED', 'RTO', 'DELAYED'] as const).some(s => s === tracking.status.toUpperCase()) && (
+                          <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl bg-red-50 border-2 border-red-200 relative z-10">
+                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-red-500 border-2 border-red-500 text-white flex items-center justify-center text-lg sm:text-xl flex-shrink-0 shadow-sm">
+                              {getShippingStatusConfig(tracking.status).icon}
+                            </div>
+                            <div className="flex-1 pt-1.5 sm:pt-1 min-w-0">
+                              <h4 className="font-bold text-sm sm:text-base text-red-800 flex items-center gap-2 flex-wrap">
+                                {getShippingStatusConfig(tracking.status).label}
+                                <span className="text-[10px] uppercase tracking-wider bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">Exception</span>
+                              </h4>
+                              {getShippingStatusConfig(tracking.status).description && (
+                                <p className="text-xs sm:text-sm text-red-700 mt-1">{getShippingStatusConfig(tracking.status).description}</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Raw activity log if present */}
+                  {tracking.activities && tracking.activities.length > 0 && (
+                    <div className="pt-2">
+                      <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
+                        📋 Scan & Activity Log
+                      </h3>
+                      <div className="bg-gray-50 rounded-2xl border border-gray-200 divide-y divide-gray-200 max-h-72 overflow-y-auto">
+                        {tracking.activities.map((act, i) => {
+                          const when = act.date || act.activity || ''
+                          const where = act.location || ''
+                          const what = act.status || act.activity || ''
+                          return (
+                            <div key={i} className="flex items-start gap-3 p-3 sm:p-4">
+                              <span className="text-emerald-500 text-base mt-0.5">●</span>
+                              <div className="flex-1 min-w-0">
+                                {what && <p className="font-semibold text-gray-800 text-sm sm:text-base">{what}</p>}
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs sm:text-sm text-gray-500">
+                                  {when && <span>🕒 {when}</span>}
+                                  {where && <span>📍 {where}</span>}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-2 text-xs sm:text-sm text-gray-500 flex items-center justify-between border-t border-gray-100 pt-4">
+                    <span>Last synced: {new Date(tracking.lastUpdated).toLocaleString('en-IN')}</span>
+                    <button onClick={() => fetchTracking(trackingOrderId)} disabled={loadingTracking} className="text-sky-700 hover:text-sky-800 font-semibold disabled:opacity-50 inline-flex items-center gap-1">
+                      🔄 Refresh
+                    </button>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

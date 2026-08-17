@@ -23,6 +23,48 @@ export type OrderItem = {
   pricePerUnit: number
 }
 
+export type ShippingInfo = {
+  shiprocketOrderId?: number | null
+  shipmentId?: string | null
+  awb?: string
+  courierName?: string
+  courierId?: number | null
+  /** Normalized status — see SHIPPING_STATUSES below */
+  status?: string
+  statusMessage?: string
+  trackingUrl?: string
+  lastUpdated?: string
+  weight?: number
+  length?: number
+  breadth?: number
+  height?: number
+  pickupLocation?: string
+}
+
+export type TrackingActivity = {
+  date?: string
+  time?: string
+  location?: string
+  status?: string
+  activity?: string
+}
+
+export type TrackingResponse = {
+  success: boolean
+  tracking: {
+    orderId: string
+    shiprocketOrderId?: number | null
+    shipmentId?: string | null
+    awb: string
+    courierName: string
+    status: string
+    statusMessage?: string
+    trackingUrl: string
+    lastUpdated: string
+    activities: TrackingActivity[]
+  }
+}
+
 export type Order = {
   _id: string
   user: string
@@ -35,6 +77,8 @@ export type Order = {
   razorpayPaymentId?: string
   razorpaySignature?: string
   addressId?: string | Address
+  shipping?: ShippingInfo
+  shippingErrors?: string[]
   createdAt: string
   updatedAt: string
 }
@@ -134,6 +178,12 @@ export const api = {
   confirmPayment: (paymentIntentId: string) => request<Order>('/api/orders/confirm-payment', { method: 'POST', json: { paymentIntentId } }),
   getOrders: () => request<Order[]>('/api/orders'),
   getOrderById: (id: string) => request<Order>(`/api/orders/${id}`),
+  getOrderTracking: (id: string) => request<TrackingResponse>(`/api/orders/${id}/tracking`),
+  retryShipment: (id: string) =>
+    request<{ success: boolean; shipping: ShippingInfo; shippingErrors?: string[] }>(
+      `/api/orders/${id}/retry-shipping`,
+      { method: 'POST' },
+    ),
 
   // Razorpay
   createRazorpayOrder: (orderId: string) =>
