@@ -118,9 +118,11 @@ export async function verifyRazorpayPayment(req, res) {
     order.paymentIntentId = razorpayPaymentId
     await order.save()
 
-    processShiprocketAsync(order).catch(err =>
-      console.error('[Razorpay Verify] Shiprocket async error:', err.message),
-    )
+    try {
+      await processShiprocketAsync(order)
+    } catch (err) {
+      console.error('[Razorpay Verify] Shiprocket async error:', err.message)
+    }
 
     res.json({
       success: true,
@@ -173,9 +175,11 @@ export async function razorpayWebhook(req, res) {
           if (payment?.id) order.razorpayPaymentId = payment.id
           await order.save()
           console.log(`[Webhook] Order ${order._id} marked as paid`)
-          processShiprocketAsync(order).catch(err =>
-            console.error('[Razorpay Webhook] Shiprocket async error:', err.message),
-          )
+          try {
+            await processShiprocketAsync(order)
+          } catch (err) {
+            console.error('[Razorpay Webhook] Shiprocket async error:', err.message)
+          }
         }
       }
     }

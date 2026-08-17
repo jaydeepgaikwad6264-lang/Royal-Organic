@@ -143,9 +143,11 @@ export async function confirmPayment(req, res) {
         { new: true }
       )
       if (order) {
-        processShiprocketAsync(order).catch(err =>
-          console.error('[Stripe Confirm] Shiprocket async error:', err.message),
-        )
+        try {
+          await processShiprocketAsync(order)
+        } catch (err) {
+          console.error('[Stripe Confirm] Shiprocket async error:', err.message)
+        }
       }
       return res.json(order)
     }

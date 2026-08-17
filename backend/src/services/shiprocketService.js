@@ -102,8 +102,8 @@ export function buildShiprocketOrderPayload(order, user, address) {
       sku,
       units: item.quantity,
       selling_price: item.pricePerUnit,
-      discount: '',
-      tax: '',
+      discount: 0,
+      tax: 0,
       hsn: 21069099,
     }
   })
@@ -139,7 +139,7 @@ export function buildShiprocketOrderPayload(order, user, address) {
 
   return {
     order_id: order._id.toString(),
-    order_date: new Date(order.createdAt || Date.now()).toISOString().slice(0, 19),
+    order_date: new Date(order.createdAt || Date.now()).toISOString().slice(0, 19).replace('T', ' '),
     pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || 'Primary',
     billing_customer_name: firstName || 'Customer',
     billing_last_name: lastName || '',
