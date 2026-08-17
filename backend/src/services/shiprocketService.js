@@ -309,6 +309,19 @@ export async function createFullShipment(order, user, address) {
     result.breadth = created.breadth
     result.height = created.height
     result.pickupLocation = created.pickupLocation
+
+    if (!created.shiprocketOrderId || !created.shipmentId) {
+      const msg =
+        created.statusMessage ||
+        (created.raw && (created.raw.message || created.raw.error || created.raw.error_message)) ||
+        'Shiprocket order creation returned no order/shipment IDs'
+      result.errors.unshift(`Order creation: ${msg}`)
+      result.statusMessage = String(msg)
+      result.status = 'SHIPPING_PENDING'
+      console.error('[Shiprocket] createShiprocketOrder returned no IDs:', created.raw || msg)
+      return result
+    }
+
     result.status =
       created.status && /created|new|ordered/i.test(String(created.status))
         ? 'SHIPMENT_CREATED'

@@ -151,7 +151,23 @@ export default function MyOrdersPage() {
         setOrders(prev => prev.map(o => o._id === orderId ? { ...o, shipping: res.shipping, shippingErrors: res.shippingErrors || o.shippingErrors } : o))
       }
       const cfg = getShippingStatusConfig(res?.shipping?.status)
-      alert(`Shipment retry complete. Status: ${cfg.label}`)
+      const isStuck = !res?.shipping?.shiprocketOrderId || !res?.shipping?.shipmentId || res?.shipping?.status === 'SHIPPING_PENDING' || res?.shipping?.status === 'ORDER_PLACED'
+      const allErrors: string[] = []
+      if (res?.shippingErrors?.length) allErrors.push(...res.shippingErrors)
+      const statusMsg = res?.shipping?.statusMessage
+      if (statusMsg && !allErrors.some(e => e.includes(statusMsg))) {
+        allErrors.push(statusMsg)
+      }
+      if (isStuck || allErrors.length) {
+        const errLines = allErrors.slice(-3).join('\n• ')
+        alert(
+          `Shipment retry did NOT create an order in Shiprocket.\n\nCurrent status: ${cfg.label}\n` +
+          (errLines ? `\nErrors:\n• ${errLines}\n` : '') +
+          `\nCheck that SHIPROCKET_EMAIL / SHIPROCKET_PASSWORD and SHIPROCKET_PICKUP_LOCATION env vars are set correctly in Vercel backend.`
+        )
+      } else {
+        alert(`Shipment retry complete. Status: ${cfg.label}${res?.shipping?.awb ? `  |  AWB: ${res.shipping.awb}` : ''}`)
+      }
     } catch (err: any) {
       alert('Retry failed: ' + (err.message || 'Unknown error'))
     } finally {
