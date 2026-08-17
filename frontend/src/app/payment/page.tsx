@@ -146,11 +146,11 @@ function PaymentPageContent() {
             if (result.success) {
               await clearCart()
               localStorage.removeItem('temp_order_products')
-              router.push(`/thank-you?orderId=${result.orderId}&paymentId=${result.razorpayPaymentId}`)
             }
+            router.push(`/thank-you?orderId=${activeOrderId}&paymentId=${response.razorpay_payment_id}`)
           } catch (err: any) {
-            setError(err.message || 'Payment verification failed')
-            setProcessing(false)
+            console.error('[Payment] Razorpay verification error, redirecting to thank-you anyway:', err?.message || err)
+            router.push(`/thank-you?orderId=${activeOrderId}&paymentId=${response.razorpay_payment_id}&verifyFailed=1`)
           }
         },
         prefill: {

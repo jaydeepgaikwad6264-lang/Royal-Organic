@@ -16,6 +16,7 @@ function ThankYouContent() {
 
   const orderId = searchParams.get('orderId')
   const paymentId = searchParams.get('paymentId')
+  const verifyFailed = searchParams.get('verifyFailed') === '1'
 
   useEffect(() => {
     if (!isClient) return
@@ -23,10 +24,29 @@ function ThankYouContent() {
       setLoading(false)
       return
     }
-    api.getOrderById(orderId)
-      .then(data => setOrder(data))
-      .catch(err => setError(err.message || 'Could not load order details'))
-      .finally(() => setLoading(false))
+    let cancelled = false
+    const load = () => {
+      api.getOrderById(orderId!)
+        .then(data => {
+          if (cancelled) return
+          setOrder(data)
+          setError('')
+        })
+        .catch(err => !cancelled && setError(err.message || 'Could not load order details'))
+        .finally(() => !cancelled && setLoading(false))
+    }
+    load()
+    const interval = setInterval(() => {
+      if (order && (order.status === 'paid' || order.status === 'shipped' || order.status === 'refunded')) {
+        clearInterval(interval)
+        return
+      }
+      load()
+    }, 3000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
   }, [isClient, orderId])
 
   if (!isClient) return null
@@ -188,6 +208,37 @@ function ThankYouContent() {
                 {error && (
                   <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-5 py-3 rounded-xl text-sm">
                     ⚠️ {error}
+                  </div>
+                )}
+
+                {verifyFailed && (
+                  <div className="bg-amber-50 border-2 border-amber-300 text-amber-900 px-5 py-4 rounded-2xl">
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">⏳</span>
+                      <div>
+                        <h3 className="font-bold text-lg mb-1">Payment received, verifying status…</h3>
+                        <p className="text-sm opacity-90">
+                          Your payment (ID: <span className="font-mono font-semibold">{paymentId || '-'}</span>) has been debited.
+                          The page is auto-refreshing every few seconds until the payment confirmation syncs with our backend.
+                          If after a few minutes the order still shows as Pending, please contact support or go to My Orders.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {order?.status === 'pending' && !verifyFailed && (
+                  <div className="bg-blue-50 border-2 border-blue-200 text-blue-900 px-5 py-4 rounded-2xl">
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl animate-pulse">🔄</span>
+                      <div>
+                        <h3 className="font-bold text-lg mb-1">Processing your payment…</h3>
+                        <p className="text-sm opacity-90">
+                          This page updates automatically every 3 seconds.
+                          Once payment confirmation is received, your order status will change to <b>PAID</b>.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
 

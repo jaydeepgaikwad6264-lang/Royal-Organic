@@ -18,6 +18,7 @@ export async function shiprocketWebhook(req, res) {
   try {
     if (WEBHOOK_SECRET) {
       const providedKey = req.headers['x-api-key'] || req.headers['X-API-Key']
+
       if (!providedKey || providedKey !== WEBHOOK_SECRET) {
         console.warn('[Shiprocket Webhook] Invalid or missing x-api-key')
         return res.status(401).json({ error: 'Unauthorized' })
@@ -25,6 +26,7 @@ export async function shiprocketWebhook(req, res) {
     }
 
     const payload = req.body || {}
+
     const {
       awb,
       current_status,
@@ -39,10 +41,13 @@ export async function shiprocketWebhook(req, res) {
     } = payload
 
     const effectiveAWB = awb || awb_code || ''
-    const effectiveStatus = current_status || shipment_status || track_status || ''
+    const effectiveStatus =
+      current_status || shipment_status || track_status || ''
     const effectiveShipmentId = shipment_id || ''
     const effectiveCourier = courier_name || payload.courier || ''
-    const effectiveTime = current_timestamp ? new Date(current_timestamp) : new Date()
+    const effectiveTime = current_timestamp
+      ? new Date(current_timestamp)
+      : new Date()
 
     console.log(
       `[Shiprocket Webhook] AWB=${effectiveAWB} status=${effectiveStatus} shipment=${effectiveShipmentId}`,
@@ -53,15 +58,22 @@ export async function shiprocketWebhook(req, res) {
     }
 
     let order = null
+
     if (effectiveAWB) {
       order = await Order.findOne({ 'shipping.awb': effectiveAWB })
     }
+
     if (!order && effectiveShipmentId) {
       order = await Order.findOne({
         'shipping.shipmentId': String(effectiveShipmentId),
       })
     }
-    if (!order && order_id && /^[0-9a-f]{24}$/i.test(String(order_id))) {
+
+    if (
+      !order &&
+      order_id &&
+      /^[0-9a-f]{24}$/i.test(String(order_id))
+    ) {
       order = await Order.findById(order_id)
     }
 
@@ -69,36 +81,71 @@ export async function shiprocketWebhook(req, res) {
       console.warn(
         `[Shiprocket Webhook] No order found for AWB=${effectiveAWB} shipment=${effectiveShipmentId}`,
       )
-      return res.status(200).json({ ok: true, matched: false })
+
+      return res.status(200).json({
+        ok: true,
+        matched: false,
+      })
     }
 
     const prevStatus = order.shipping?.status || ''
-    const normalized = normalizeShiprocketStatus(effectiveStatus, shipment_status)
+
+    const normalized = normalizeShiprocketStatus(
+      effectiveStatus,
+      shipment_status,
+    )
+
     const prevUpdated = order.shipping?.lastUpdated
       ? new Date(order.shipping.lastUpdated).getTime()
       : 0
+
     const incomingTime = effectiveTime.getTime()
+
     if (
       prevStatus === normalized &&
       order.shipping?.awb === effectiveAWB &&
       prevUpdated >= incomingTime
     ) {
-      return res.status(200).json({ ok: true, skipped: true })
+      return res.status(200).json({
+        ok: true,
+        skipped: true,
+      })
     }
 
     order.shipping = order.shipping || {}
-    if (effectiveAWB) order.shipping.awb = effectiveAWB
-    if (effectiveCourier) order.shipping.courierName = effectiveCourier
-    if (effectiveShipmentId) order.shipping.shipmentId = String(effectiveShipmentId)
-    if (tracking_url || order.shipping.trackingUrl === '') {
-      order.shipping.trackingUrl = tracking_url || order.shipping.trackingUrl || ''
+
+    if (effectiveAWB) {
+      order.shipping.awb = effectiveAWB
     }
+
+    if (effectiveCourier) {
+      order.shipping.courierName = effectiveCourier
+    }
+
+    if (effectiveShipmentId) {
+      order.shipping.shipmentId = String(effectiveShipmentId)
+    }
+
+    if (tracking_url || order.shipping.trackingUrl === '') {
+      order.shipping.trackingUrl =
+        tracking_url || order.shipping.trackingUrl || ''
+    }
+
     order.shipping.status = normalized
     order.shipping.statusMessage = effectiveStatus
     order.shipping.lastUpdated = effectiveTime
 
-    if (['IN_TRANSIT', 'OUT_FOR_DELIVERY', 'PICKED_UP', 'AWB_GENERATED'].includes(normalized)) {
-      if (order.status === 'paid') order.status = 'shipped'
+    if (
+      [
+        'IN_TRANSIT',
+        'OUT_FOR_DELIVERY',
+        'PICKED_UP',
+        'AWB_GENERATED',
+      ].includes(normalized)
+    ) {
+      if (order.status === 'paid') {
+        order.status = 'shipped'
+      }
     }
 
     await order.save()
@@ -106,10 +153,19 @@ export async function shiprocketWebhook(req, res) {
     console.log(
       `[Shiprocket Webhook] Updated order ${order._id}: ${prevStatus} → ${normalized}`,
     )
-    return res.status(200).json({ ok: true, updated: true, orderId: order._id })
+
+    return res.status(200).json({
+      ok: true,
+      updated: true,
+      orderId: order._id,
+    })
   } catch (err) {
     console.error('[Shiprocket Webhook] Processing error:', err)
-    return res.status(200).json({ ok: false, error: err.message })
+
+    return res.status(200).json({
+      ok: false,
+      error: err.message,
+    })
   }
 }
 
@@ -118,20 +174,36 @@ export async function retryShipment(req, res) {
     const userId = req.user.id
     const { id } = req.params
 
-    const order = await Order.findOne({ _id: id, user: userId })
+    const order = await Order.findOne({
+      _id: id,
+      user: userId,
+    })
       .populate('addressId')
       .populate('user', 'name email')
+
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' })
+      return res.status(404).json({
+        error: 'Order not found',
+      })
     }
+
     if (order.status !== 'paid' && order.status !== 'shipped') {
-      return res.status(400).json({ error: 'Order must be paid before creating a shipment' })
+      return res.status(400).json({
+        error: 'Order must be paid before creating a shipment',
+      })
     }
 
     const address = order.addressId ? order.addressId : null
-    const user = order.user || (await User.findById(userId).select('name email'))
 
-    const shipping = await createFullShipment(order, user, address)
+    const user =
+      order.user ||
+      (await User.findById(userId).select('name email'))
+
+    const shipping = await createFullShipment(
+      order,
+      user,
+      address,
+    )
 
     order.shipping = {
       shiprocketOrderId: shipping.shiprocketOrderId,
@@ -149,18 +221,27 @@ export async function retryShipment(req, res) {
       height: shipping.height,
       pickupLocation: shipping.pickupLocation,
     }
+
     if (shipping.errors && shipping.errors.length) {
       order.shippingErrors = [
         ...(order.shippingErrors || []),
         `[${new Date().toISOString()}] Retry: ${shipping.errors.join('; ')}`,
       ].slice(-10)
     }
+
     if (
-      ['IN_TRANSIT', 'OUT_FOR_DELIVERY', 'PICKED_UP', 'AWB_GENERATED', 'SHIPMENT_CREATED'].includes(shipping.status) &&
+      [
+        'IN_TRANSIT',
+        'OUT_FOR_DELIVERY',
+        'PICKED_UP',
+        'AWB_GENERATED',
+        'SHIPMENT_CREATED',
+      ].includes(shipping.status) &&
       order.status === 'paid'
     ) {
       order.status = 'shipped'
     }
+
     await order.save()
 
     return res.json({
@@ -169,8 +250,14 @@ export async function retryShipment(req, res) {
       shippingErrors: order.shippingErrors,
     })
   } catch (err) {
-    console.error('[Shiprocket] retryShipment error:', err.message)
-    res.status(500).json({ error: 'Failed to retry shipment creation' })
+    console.error(
+      '[Shiprocket] retryShipment error:',
+      err.message,
+    )
+
+    res.status(500).json({
+      error: 'Failed to retry shipment creation',
+    })
   }
 }
 
@@ -179,74 +266,250 @@ export async function getOrderTracking(req, res) {
     const userId = req.user.id
     const { id } = req.params
 
-    const order = await Order.findOne({ _id: id, user: userId }).populate('addressId')
+    let order = await Order.findOne({
+      _id: id,
+      user: userId,
+    }).populate('addressId')
+
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' })
+      return res.status(404).json({
+        error: 'Order not found',
+      })
     }
 
-    const shipping = order.shipping || {}
+    let shipping = order.shipping || {}
+
+    // FIX: removed TypeScript type annotation
+    let trackingFetchErrors = []
+
+    // FIX: removed TypeScript type annotation
+    let refreshed = null
+
+    if (!shipping.shiprocketOrderId || !shipping.shipmentId) {
+      try {
+        // FIX: removed "as any"
+        const userObj =
+          order.user ||
+          (await User.findById(userId).select('name email'))
+
+        // FIX: removed "as any"
+        const addressObj = order.addressId || null
+
+        const created = await createFullShipment(
+          order,
+          userObj,
+          addressObj,
+        )
+
+        order.shipping = {
+          shiprocketOrderId: created.shiprocketOrderId,
+          shipmentId: created.shipmentId,
+          awb: created.awb,
+          courierName: created.courierName,
+          courierId: created.courierId,
+          status: created.status,
+          statusMessage: created.statusMessage,
+          trackingUrl: created.trackingUrl,
+          lastUpdated: new Date(
+            created.lastUpdated || Date.now(),
+          ),
+          weight: created.weight,
+          length: created.length,
+          breadth: created.breadth,
+          height: created.height,
+          pickupLocation: created.pickupLocation,
+          activities: [],
+        }
+
+        if (created.errors && created.errors.length) {
+          order.shippingErrors = [
+            ...(order.shippingErrors || []),
+            `[${new Date().toISOString()}] Track-triggered retry: ${created.errors.join('; ')}`,
+          ].slice(-10)
+        }
+
+        if (
+          [
+            'IN_TRANSIT',
+            'OUT_FOR_DELIVERY',
+            'PICKED_UP',
+            'AWB_GENERATED',
+            'SHIPMENT_CREATED',
+          ].includes(created.status) &&
+          order.status === 'paid'
+        ) {
+          order.status = 'shipped'
+        }
+
+        await order.save()
+
+        // FIX: removed "as any"
+        order = await Order.findOne({
+          _id: id,
+          user: userId,
+        }).populate('addressId')
+
+        shipping = order.shipping || {}
+      } catch (err) {
+        console.warn(
+          '[Shiprocket] Track-triggered createFullShipment failed:',
+          err.message,
+        )
+
+        trackingFetchErrors.push(
+          `Shipment creation: ${err.message}`,
+        )
+      }
+    }
+
     let liveStatus = shipping.status || 'ORDER_PLACED'
     let liveCourier = shipping.courierName || ''
     let liveAWB = shipping.awb || ''
     let liveTrackingUrl = shipping.trackingUrl || ''
-    let lastUpdated = shipping.lastUpdated || order.updatedAt
-    let activities = []
+    let liveCourierId = shipping.courierId || null
+    let lastUpdated =
+      shipping.lastUpdated || order.updatedAt
+
+    // FIX: removed TypeScript type annotation
+    let activities = Array.isArray(shipping.activities)
+      ? shipping.activities
+      : []
 
     if (shipping.awb || shipping.shipmentId) {
       try {
         const fresh = shipping.awb
           ? await getTrackingByAWB(shipping.awb)
           : await getTrackingByShipmentId(shipping.shipmentId)
-        liveStatus = normalizeShiprocketStatus(fresh.currentStatus, fresh.shipmentStatus)
-        liveCourier = fresh.courierName || liveCourier
+
+        liveStatus = normalizeShiprocketStatus(
+          fresh.currentStatus,
+          fresh.shipmentStatus,
+        )
+
+        liveCourier =
+          fresh.courierName || liveCourier
+
         liveAWB = fresh.awb || liveAWB
-        liveTrackingUrl = fresh.trackingUrl || liveTrackingUrl
-        lastUpdated = fresh.lastUpdated || lastUpdated
-        activities = fresh.activities || []
+
+        liveTrackingUrl =
+          fresh.trackingUrl || liveTrackingUrl
+
+        liveCourierId =
+          fresh.courierId || liveCourierId
+
+        lastUpdated =
+          fresh.lastUpdated || lastUpdated
 
         if (
-          liveStatus !== shipping.status ||
-          liveCourier !== shipping.courierName ||
-          liveAWB !== shipping.awb
+          fresh.activities &&
+          fresh.activities.length > 0
         ) {
-          order.shipping = {
-            ...(shipping || {}),
-            status: liveStatus,
-            courierName: liveCourier,
-            awb: liveAWB,
-            trackingUrl: liveTrackingUrl,
-            lastUpdated: new Date(lastUpdated),
-          }
-          if (
-            ['IN_TRANSIT', 'OUT_FOR_DELIVERY', 'PICKED_UP', 'AWB_GENERATED'].includes(liveStatus) &&
-            order.status === 'paid'
-          ) {
-            order.status = 'shipped'
-          }
-          await order.save()
+          activities = fresh.activities.map((a) => ({
+            date: a.date || '',
+            time: a.time || '',
+            location: a.location || '',
+            status: a.status || '',
+            activity: a.activity || '',
+          }))
         }
+
+        refreshed = fresh
       } catch (err) {
-        console.warn('[Shiprocket] Tracking refresh failed:', err.message)
+        console.warn(
+          '[Shiprocket] Tracking refresh failed:',
+          err.message,
+        )
+
+        trackingFetchErrors.push(
+          err.message || 'Failed to fetch live tracking',
+        )
       }
+    }
+
+    const shiprocketOrderId =
+      shipping.shiprocketOrderId || null
+
+    const shipmentId =
+      shipping.shipmentId || null
+
+    if (
+      shiprocketOrderId ||
+      shipmentId ||
+      liveStatus !==
+        (shipping.status || 'ORDER_PLACED')
+    ) {
+      order.shipping = {
+        // FIX: removed "as any"
+        shiprocketOrderId: shiprocketOrderId,
+
+        // FIX: removed "as any"
+        shipmentId: shipmentId,
+
+        awb: liveAWB,
+        courierName: liveCourier,
+
+        courierId:
+          typeof liveCourierId === 'number'
+            ? liveCourierId
+            : shipping.courierId,
+
+        status: liveStatus,
+        statusMessage: liveStatus,
+        trackingUrl: liveTrackingUrl,
+        lastUpdated: new Date(lastUpdated),
+        weight: shipping.weight,
+        length: shipping.length,
+        breadth: shipping.breadth,
+        height: shipping.height,
+        pickupLocation:
+          shipping.pickupLocation ||
+          process.env.SHIPROCKET_PICKUP_LOCATION ||
+          'Primary',
+
+        // FIX: removed "as any"
+        activities: activities,
+      }
+
+      if (
+        [
+          'IN_TRANSIT',
+          'OUT_FOR_DELIVERY',
+          'PICKED_UP',
+          'AWB_GENERATED',
+          'SHIPMENT_CREATED',
+        ].includes(liveStatus) &&
+        order.status === 'paid'
+      ) {
+        order.status = 'shipped'
+      }
+
+      await order.save()
     }
 
     return res.json({
       success: true,
       tracking: {
         orderId: order._id,
-        shiprocketOrderId: shipping.shiprocketOrderId || null,
-        shipmentId: shipping.shipmentId || null,
+        shiprocketOrderId:
+          shiprocketOrderId || null,
+        shipmentId: shipmentId || null,
         awb: liveAWB,
         courierName: liveCourier,
         status: liveStatus,
-        statusMessage: shipping.statusMessage || liveStatus,
+        statusMessage: liveStatus,
         trackingUrl: liveTrackingUrl,
         lastUpdated,
         activities,
       },
     })
   } catch (err) {
-    console.error('[Shiprocket] getOrderTracking error:', err.message)
-    res.status(500).json({ error: 'Failed to get tracking information' })
+    console.error(
+      '[Shiprocket] getOrderTracking error:',
+      err.message,
+    )
+
+    res.status(500).json({
+      error: 'Failed to get tracking information',
+    })
   }
 }

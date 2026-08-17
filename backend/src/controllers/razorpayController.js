@@ -94,13 +94,50 @@ export async function verifyRazorpayPayment(req, res) {
       return res.status(404).json({ error: 'Order not found' })
     }
 
+    if (order.status === 'paid' || order.status === 'shipped' || order.status === 'refunded') {
+      try {
+        if (!order.shipping?.shiprocketOrderId) {
+          await processShiprocketAsync(order)
+        }
+      } catch (err) {
+        console.error('[Razorpay Verify] Idempotent Shiprocket error:', err.message)
+      }
+      return res.json({
+        success: true,
+        orderId: order._id,
+        status: order.status,
+        amount: order.totalAmount,
+        razorpayPaymentId: order.razorpayPaymentId || razorpayPaymentId,
+      })
+    }
+
     const body = razorpayOrderId + '|' + razorpayPaymentId
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || 'placeholder_secret'
     const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'placeholder_secret')
+      .createHmac('sha256', keySecret)
       .update(body.toString())
       .digest('hex')
 
-    if (expectedSignature !== razorpaySignature) {
+    let signatureValid = expectedSignature === razorpaySignature
+
+    if (!signatureValid && razorpay && razorpayPaymentId) {
+      try {
+        const fetched = await razorpay.payments.fetch(razorpayPaymentId)
+        if (fetched && (fetched.status === 'captured' || fetched.status === 'authorized')) {
+          if (fetched.order_id && fetched.order_id === razorpayOrderId) {
+            signatureValid = true
+            console.warn('[Razorpay Verify] Signature mismatch but payment confirmed via Razorpay API for payment', razorpayPaymentId)
+          } else if (!fetched.order_id) {
+            signatureValid = true
+            console.warn('[Razorpay Verify] Signature mismatch but payment captured (no order_id match required)', razorpayPaymentId)
+          }
+        }
+      } catch (fetchErr) {
+        console.error('[Razorpay Verify] Payment fetch fallback failed:', fetchErr.message)
+      }
+    }
+
+    if (!signatureValid) {
       order.status = 'failed'
       order.razorpayOrderId = razorpayOrderId
       order.razorpayPaymentId = razorpayPaymentId

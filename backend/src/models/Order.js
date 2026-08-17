@@ -26,6 +26,15 @@ const shippingSchema = new mongoose.Schema(
     breadth: { type: Number },
     height: { type: Number },
     pickupLocation: { type: String, default: 'Primary' },
+    // Stored tracking activities (from Shiprocket)
+    activities: [{
+      date: { type: String },
+      time: { type: String },
+      location: { type: String },
+      status: { type: String },
+      activity: { type: String },
+      _id: false,
+    }],
   },
   { _id: false }
 )
