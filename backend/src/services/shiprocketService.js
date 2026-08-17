@@ -281,6 +281,22 @@ export async function createFullShipment(order, user, address) {
     errors: [],
   }
 
+  if (!process.env.SHIPROCKET_EMAIL || !process.env.SHIPROCKET_PASSWORD) {
+    result.errors.unshift('Shiprocket credentials not configured (SHIPROCKET_EMAIL / SHIPROCKET_PASSWORD)')
+    result.statusMessage = 'Shiprocket credentials missing'
+    result.status = 'SHIPPING_PENDING'
+    console.warn('[Shiprocket] createFullShipment: credentials not configured')
+    return result
+  }
+
+  if (!address) {
+    result.errors.unshift('No delivery address found for this order')
+    result.statusMessage = 'Missing delivery address'
+    result.status = 'SHIPPING_PENDING'
+    console.warn('[Shiprocket] createFullShipment: no address for order', order?._id)
+    return result
+  }
+
   try {
     const created = await createShiprocketOrder(order, user, address)
     result.shiprocketOrderId = created.shiprocketOrderId

@@ -156,7 +156,7 @@ export async function retryShipment(req, res) {
       ].slice(-10)
     }
     if (
-      ['IN_TRANSIT', 'OUT_FOR_DELIVERY', 'PICKED_UP', 'AWB_GENERATED'].includes(shipping.status) &&
+      ['IN_TRANSIT', 'OUT_FOR_DELIVERY', 'PICKED_UP', 'AWB_GENERATED', 'SHIPMENT_CREATED'].includes(shipping.status) &&
       order.status === 'paid'
     ) {
       order.status = 'shipped'

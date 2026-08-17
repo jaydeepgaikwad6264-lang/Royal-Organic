@@ -595,7 +595,7 @@ export default function MyOrdersPage() {
                             >
                               {trackingOrderId === order._id && loadingTracking ? '⏳ Loading...' : '📍 Track Order'}
                             </button>
-                            {order.shipping?.status === 'SHIPPING_PENDING' && (
+                            {(order.shipping?.status === 'SHIPPING_PENDING' || (order.shipping?.status === 'ORDER_PLACED' && !order.shipping?.shiprocketOrderId)) && (
                               <button
                                 onClick={() => handleRetryShipment(order._id)}
                                 disabled={retryingOrderId === order._id}
