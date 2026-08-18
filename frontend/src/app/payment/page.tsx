@@ -173,8 +173,15 @@ function PaymentPageContent() {
 
       const rzp = new window.Razorpay(options)
       rzp.on('payment.failed', function (res: any) {
-        setError(res?.error?.description || 'Payment failed. Please try again.')
-        setProcessing(false)
+        const failReason = res?.error?.description || 'Payment failed'
+        const failedPaymentId = res?.error?.metadata?.payment_id || ''
+        console.error('[Payment] Razorpay payment.failed — redirecting to thank-you:', failReason)
+        router.push(
+          `/thank-you?orderId=${activeOrderId}` +
+            (failedPaymentId ? `&paymentId=${failedPaymentId}` : '') +
+            `&verifyFailed=1&payFailed=1` +
+            `&msg=${encodeURIComponent(failReason)}`,
+        )
       })
       rzp.open()
     } catch (err: any) {

@@ -10,6 +10,7 @@ import {
   getTrackingByAWB,
   getTrackingByShipmentId,
   normalizeShiprocketStatus,
+  extractActivitiesFromPayload,
 } from '../services/shiprocketService.js'
 
 const WEBHOOK_SECRET = process.env.SHIPROCKET_WEBHOOK_SECRET || ''
@@ -113,6 +114,9 @@ export async function shiprocketWebhook(req, res) {
     }
 
     order.shipping = order.shipping || {}
+    order.shipping.activities = Array.isArray(order.shipping.activities)
+      ? order.shipping.activities
+      : []
 
     if (effectiveAWB) {
       order.shipping.awb = effectiveAWB
@@ -129,6 +133,21 @@ export async function shiprocketWebhook(req, res) {
     if (tracking_url || order.shipping.trackingUrl === '') {
       order.shipping.trackingUrl =
         tracking_url || order.shipping.trackingUrl || ''
+    }
+
+    const incomingActivities = extractActivitiesFromPayload(payload)
+    if (incomingActivities.length > 0) {
+      const existingKeys = new Set(
+        order.shipping.activities.map(a => `${a.date}|${a.status}|${a.activity}`)
+      )
+      for (const act of incomingActivities) {
+        const key = `${act.date}|${act.status}|${act.activity}`
+        if (!existingKeys.has(key)) {
+          order.shipping.activities.unshift(act)
+          existingKeys.add(key)
+        }
+      }
+      order.shipping.activities = order.shipping.activities.slice(0, 200)
     }
 
     order.shipping.status = normalized
@@ -205,6 +224,38 @@ export async function retryShipment(req, res) {
       address,
     )
 
+    let activities = Array.isArray(order.shipping?.activities)
+      ? [...order.shipping.activities]
+      : []
+
+    if (shipping.awb || shipping.shipmentId) {
+      try {
+        const trackRes = shipping.awb
+          ? await getTrackingByAWB(shipping.awb)
+          : await getTrackingByShipmentId(shipping.shipmentId)
+        if (trackRes.activities && trackRes.activities.length > 0) {
+          const seen = new Set(activities.map(a => `${a.date}|${a.status}|${a.activity}`))
+          for (const act of trackRes.activities) {
+            const mapped = {
+              date: act.date || '',
+              time: act.time || '',
+              location: act.location || '',
+              status: act.status || '',
+              activity: act.activity || '',
+            }
+            const k = `${mapped.date}|${mapped.status}|${mapped.activity}`
+            if (!seen.has(k)) {
+              activities.unshift(mapped)
+              seen.add(k)
+            }
+          }
+          activities = activities.slice(0, 200)
+        }
+      } catch (trackErr) {
+        console.warn('[Shiprocket] retryShipment tracking fetch:', trackErr.message)
+      }
+    }
+
     order.shipping = {
       shiprocketOrderId: shipping.shiprocketOrderId,
       shipmentId: shipping.shipmentId,
@@ -220,6 +271,7 @@ export async function retryShipment(req, res) {
       breadth: shipping.breadth,
       height: shipping.height,
       pickupLocation: shipping.pickupLocation,
+      activities,
     }
 
     if (shipping.errors && shipping.errors.length) {
@@ -363,6 +415,7 @@ export async function getOrderTracking(req, res) {
     }
 
     let liveStatus = shipping.status || 'ORDER_PLACED'
+    let liveStatusMessage = shipping.statusMessage || ''
     let liveCourier = shipping.courierName || ''
     let liveAWB = shipping.awb || ''
     let liveTrackingUrl = shipping.trackingUrl || ''
@@ -370,9 +423,8 @@ export async function getOrderTracking(req, res) {
     let lastUpdated =
       shipping.lastUpdated || order.updatedAt
 
-    // FIX: removed TypeScript type annotation
     let activities = Array.isArray(shipping.activities)
-      ? shipping.activities
+      ? [...shipping.activities]
       : []
 
     if (shipping.awb || shipping.shipmentId) {
@@ -381,10 +433,12 @@ export async function getOrderTracking(req, res) {
           ? await getTrackingByAWB(shipping.awb)
           : await getTrackingByShipmentId(shipping.shipmentId)
 
-        liveStatus = normalizeShiprocketStatus(
+        const normalizedFresh = normalizeShiprocketStatus(
           fresh.currentStatus,
           fresh.shipmentStatus,
         )
+        liveStatus = normalizedFresh
+        liveStatusMessage = fresh.currentStatus || fresh.shipmentStatus || liveStatusMessage
 
         liveCourier =
           fresh.courierName || liveCourier
@@ -404,13 +458,25 @@ export async function getOrderTracking(req, res) {
           fresh.activities &&
           fresh.activities.length > 0
         ) {
-          activities = fresh.activities.map((a) => ({
+          const mappedFresh = fresh.activities.map((a) => ({
             date: a.date || '',
             time: a.time || '',
             location: a.location || '',
             status: a.status || '',
             activity: a.activity || '',
           }))
+
+          const seen = new Set(
+            activities.map(a => `${a.date}|${a.status}|${a.activity}`)
+          )
+          for (const act of mappedFresh) {
+            const k = `${act.date}|${act.status}|${act.activity}`
+            if (!seen.has(k)) {
+              activities.unshift(act)
+              seen.add(k)
+            }
+          }
+          activities = activities.slice(0, 200)
         }
 
         refreshed = fresh
@@ -436,25 +502,21 @@ export async function getOrderTracking(req, res) {
       shiprocketOrderId ||
       shipmentId ||
       liveStatus !==
-        (shipping.status || 'ORDER_PLACED')
+        (shipping.status || 'ORDER_PLACED') ||
+      liveStatusMessage !== (shipping.statusMessage || '') ||
+      activities.length !== (Array.isArray(shipping.activities) ? shipping.activities.length : 0)
     ) {
       order.shipping = {
-        // FIX: removed "as any"
         shiprocketOrderId: shiprocketOrderId,
-
-        // FIX: removed "as any"
         shipmentId: shipmentId,
-
         awb: liveAWB,
         courierName: liveCourier,
-
         courierId:
           typeof liveCourierId === 'number'
             ? liveCourierId
             : shipping.courierId,
-
         status: liveStatus,
-        statusMessage: liveStatus,
+        statusMessage: liveStatusMessage || liveStatus,
         trackingUrl: liveTrackingUrl,
         lastUpdated: new Date(lastUpdated),
         weight: shipping.weight,
@@ -465,8 +527,6 @@ export async function getOrderTracking(req, res) {
           shipping.pickupLocation ||
           process.env.SHIPROCKET_PICKUP_LOCATION ||
           'Primary',
-
-        // FIX: removed "as any"
         activities: activities,
       }
 
@@ -496,7 +556,7 @@ export async function getOrderTracking(req, res) {
         awb: liveAWB,
         courierName: liveCourier,
         status: liveStatus,
-        statusMessage: liveStatus,
+        statusMessage: liveStatusMessage || liveStatus,
         trackingUrl: liveTrackingUrl,
         lastUpdated,
         activities,

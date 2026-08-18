@@ -39,6 +39,7 @@ export type ShippingInfo = {
   breadth?: number
   height?: number
   pickupLocation?: string
+  activities?: TrackingActivity[]
 }
 
 export type TrackingActivity = {

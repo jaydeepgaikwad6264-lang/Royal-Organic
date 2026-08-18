@@ -384,3 +384,146 @@ export function normalizeShiprocketStatus(srStatus, shipmentStatus = '') {
   if (/\b(pending|shipping pending)\b/.test(s)) return 'SHIPPING_PENDING'
   return 'ORDER_PLACED'
 }
+
+/**
+ * Extract tracking activities from various Shiprocket payload shapes
+ * (webhook payloads, tracking API responses, etc.)
+ */
+export function extractActivitiesFromPayload(payload = {}) {
+  // Try known paths where Shiprocket puts activity arrays
+  const candidates = [
+    payload.activities,
+    payload.track_activities,
+    payload.tracking_data?.activities,
+    payload.tracking_data?.track_data?.activities,
+    payload.shipment_track?.track_data?.activities,
+    payload.shipment_track?.activities,
+    payload.scan,
+  ]
+
+  let rawList = []
+  for (const c of candidates) {
+    if (Array.isArray(c) && c.length > 0) {
+      rawList = c
+      break
+    }
+  }
+
+  if (rawList.length === 0 && (payload.current_status || payload.status || payload.current_timestamp)) {
+    // Build a single activity from the current webhook event
+    rawList = [{
+      date: payload.current_timestamp || payload.updated_at || payload.date || new Date().toISOString(),
+      location: payload.location || payload.city || '',
+      status: payload.current_status || payload.shipment_status || payload.track_status || payload.status || '',
+      activity: payload.status_message || payload.message || payload.activity || '',
+    }]
+  }
+
+  return rawList.map(a => ({
+    date: String(a.date || a.timestamp || a.created_at || a.time || '').slice(0, 50),
+    time: String(a.time || a.timestamp_value || '').slice(0, 50),
+    location: String(a.location || a.city || a.place || a.source || '').slice(0, 200),
+    status: String(a.status || a.current_status || a.track_status || '').slice(0, 200),
+    activity: String(a.activity || a.activity_type || a.message || a.remark || a.status_message || '').slice(0, 500),
+  })).filter(a => a.date || a.location || a.status || a.activity)
+}
+
+import Order from '../models/Order.js'
+import User from '../models/User.js'
+
+/**
+ * Unified Shiprocket shipment creation + persistence.
+ * Used by: Razorpay verify, Stripe confirm, Razorpay webhook, track-triggered retry.
+ * Idempotent: skips if valid shiprocketOrderId + awb already exist.
+ * Always saves `activities` array to order.shipping.
+ */
+export async function processShiprocketAsync(order) {
+  try {
+    const fresh = await Order.findById(order._id)
+      .populate('addressId')
+      .populate('user', 'name email')
+    if (!fresh) return
+
+    if (
+      fresh.shipping?.shiprocketOrderId &&
+      fresh.shipping?.awb &&
+      fresh.shipping?.status !== 'SHIPPING_PENDING'
+    ) {
+      return
+    }
+
+    const user = fresh.user || (await User.findById(fresh.user).select('name email'))
+    const address = fresh.addressId || null
+
+    const shipping = await createFullShipment(fresh, user, address)
+
+    let activities = []
+    if (shipping.awb || shipping.shipmentId) {
+      try {
+        const trackRes = shipping.awb
+          ? await getTrackingByAWB(shipping.awb)
+          : await getTrackingByShipmentId(shipping.shipmentId)
+        activities = Array.isArray(trackRes.activities) ? trackRes.activities : []
+      } catch (_) {
+        /* no-op */
+      }
+    }
+
+    fresh.shipping = {
+      shiprocketOrderId: shipping.shiprocketOrderId,
+      shipmentId: shipping.shipmentId,
+      awb: shipping.awb,
+      courierName: shipping.courierName,
+      courierId: shipping.courierId,
+      status: shipping.status,
+      statusMessage: shipping.statusMessage,
+      trackingUrl: shipping.trackingUrl,
+      lastUpdated: shipping.lastUpdated,
+      weight: shipping.weight,
+      length: shipping.length,
+      breadth: shipping.breadth,
+      height: shipping.height,
+      pickupLocation: shipping.pickupLocation,
+      activities,
+    }
+    if (shipping.errors && shipping.errors.length) {
+      fresh.shippingErrors = [
+        ...(fresh.shippingErrors || []),
+        `[${new Date().toISOString()}] ${shipping.errors.join('; ')}`,
+      ].slice(-10)
+    }
+    if (
+      ['IN_TRANSIT', 'OUT_FOR_DELIVERY', 'PICKED_UP', 'AWB_GENERATED', 'SHIPMENT_CREATED'].includes(
+        shipping.status,
+      ) &&
+      fresh.status === 'paid'
+    ) {
+      fresh.status = 'shipped'
+    }
+    await fresh.save()
+    console.log(
+      `[Shiprocket] Order ${fresh._id} shipping status: ${shipping.status}` +
+        (shipping.awb ? `  AWB=${shipping.awb}` : ''),
+    )
+  } catch (err) {
+    console.error('[Shiprocket] processShiprocketAsync fatal:', err.message)
+    try {
+      const fresh = await Order.findById(order._id)
+      if (fresh) {
+        fresh.shipping = {
+          ...(fresh.shipping || {}),
+          status: 'SHIPPING_PENDING',
+          lastUpdated: new Date(),
+          activities: fresh.shipping?.activities || [],
+        }
+        fresh.shippingErrors = [
+          ...(fresh.shippingErrors || []),
+          `[${new Date().toISOString()}] processShiprocketAsync: ${err.message}`,
+        ].slice(-10)
+        await fresh.save()
+      }
+    } catch (_) {
+      /* no-op */
+    }
+  }
+}

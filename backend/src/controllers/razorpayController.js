@@ -1,10 +1,8 @@
 import Order from '../models/Order.js'
-import User from '../models/User.js'
-import Address from '../models/Address.js'
 import dotenv from 'dotenv'
 import crypto from 'crypto'
 import Razorpay from 'razorpay'
-import { createFullShipment } from '../services/shiprocketService.js'
+import { processShiprocketAsync } from '../services/shiprocketService.js'
 
 dotenv.config()
 
@@ -247,79 +245,4 @@ export async function razorpayWebhook(req, res) {
   }
 }
 
-async function processShiprocketAsync(order) {
-  try {
-    const fresh = await Order.findById(order._id)
-      .populate('addressId')
-      .populate('user', 'name email')
-    if (!fresh) return
 
-    if (
-      fresh.shipping?.shiprocketOrderId &&
-      fresh.shipping?.awb &&
-      fresh.shipping?.status !== 'SHIPPING_PENDING'
-    ) {
-      return
-    }
-
-    const user = fresh.user || (await User.findById(fresh.user).select('name email'))
-    const address = fresh.addressId || null
-
-    const shipping = await createFullShipment(fresh, user, address)
-
-    fresh.shipping = {
-      shiprocketOrderId: shipping.shiprocketOrderId,
-      shipmentId: shipping.shipmentId,
-      awb: shipping.awb,
-      courierName: shipping.courierName,
-      courierId: shipping.courierId,
-      status: shipping.status,
-      statusMessage: shipping.statusMessage,
-      trackingUrl: shipping.trackingUrl,
-      lastUpdated: shipping.lastUpdated,
-      weight: shipping.weight,
-      length: shipping.length,
-      breadth: shipping.breadth,
-      height: shipping.height,
-      pickupLocation: shipping.pickupLocation,
-    }
-    if (shipping.errors && shipping.errors.length) {
-      fresh.shippingErrors = [
-        ...(fresh.shippingErrors || []),
-        `[${new Date().toISOString()}] ${shipping.errors.join('; ')}`,
-      ].slice(-10)
-    }
-    if (
-      ['IN_TRANSIT', 'OUT_FOR_DELIVERY', 'PICKED_UP', 'AWB_GENERATED', 'SHIPMENT_CREATED'].includes(
-        shipping.status,
-      ) &&
-      fresh.status === 'paid'
-    ) {
-      fresh.status = 'shipped'
-    }
-    await fresh.save()
-    console.log(
-      `[Shiprocket] Order ${fresh._id} shipping status: ${shipping.status}` +
-        (shipping.awb ? `  AWB=${shipping.awb}` : ''),
-    )
-  } catch (err) {
-    console.error('[Shiprocket] processShiprocketAsync fatal:', err.message)
-    try {
-      const fresh = await Order.findById(order._id)
-      if (fresh) {
-        fresh.shipping = {
-          ...(fresh.shipping || {}),
-          status: 'SHIPPING_PENDING',
-          lastUpdated: new Date(),
-        }
-        fresh.shippingErrors = [
-          ...(fresh.shippingErrors || []),
-          `[${new Date().toISOString()}] processShiprocketAsync: ${err.message}`,
-        ].slice(-10)
-        await fresh.save()
-      }
-    } catch (_) {
-      /* no-op */
-    }
-  }
-}

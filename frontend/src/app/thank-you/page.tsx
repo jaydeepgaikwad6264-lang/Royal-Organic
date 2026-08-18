@@ -17,6 +17,8 @@ function ThankYouContent() {
   const orderId = searchParams.get('orderId')
   const paymentId = searchParams.get('paymentId')
   const verifyFailed = searchParams.get('verifyFailed') === '1'
+  const payFailed = searchParams.get('payFailed') === '1'
+  const failMessage = searchParams.get('msg') || ''
 
   useEffect(() => {
     if (!isClient) return
@@ -211,7 +213,23 @@ function ThankYouContent() {
                   </div>
                 )}
 
-                {verifyFailed && (
+                {payFailed && (
+                  <div className="bg-red-50 border-2 border-red-300 text-red-900 px-5 py-4 rounded-2xl">
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">❌</span>
+                      <div>
+                        <h3 className="font-bold text-lg mb-1">Payment was not completed</h3>
+                        {failMessage && <p className="text-sm opacity-90 mb-1">{failMessage}</p>}
+                        <p className="text-sm opacity-90">
+                          You have NOT been charged. Please go to My Orders and click "Retry Payment" or try again from the Shop page.
+                          {paymentId && <span className="block mt-1">Reference: <span className="font-mono font-semibold">{paymentId}</span></span>}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {verifyFailed && !payFailed && (
                   <div className="bg-amber-50 border-2 border-amber-300 text-amber-900 px-5 py-4 rounded-2xl">
                     <div className="flex items-start gap-3">
                       <span className="text-2xl">⏳</span>
