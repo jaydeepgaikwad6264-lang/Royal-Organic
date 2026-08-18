@@ -1,4 +1,5 @@
 import Order from '../models/Order.js'
+import User from '../models/User.js'
 import dotenv from 'dotenv'
 import crypto from 'crypto'
 import Razorpay from 'razorpay'
@@ -11,40 +12,131 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET || 'placeholder_secret',
 })
 
+const RAZORPAY_MIN_PAISE = 100 // Razorpay requires minimum ₹1 (100 paise)
+
 export async function createRazorpayOrder(req, res) {
   try {
     const { orderId } = req.body
     const userId = req.user.id
 
+    if (!orderId) {
+      return res.status(400).json({ error: 'orderId is required' })
+    }
+
     const order = await Order.findOne({ _id: orderId, user: userId })
-      .populate('user', 'name email')
+      .populate('user', 'name email phone')
       .populate('addressId')
     if (!order) {
       return res.status(404).json({ error: 'Order not found' })
     }
 
+    // Idempotency: If the user is retrying a FAILED order, reset to pending so a new
+    // Razorpay order can be generated. SUCCESS/PAID/SHIPPED orders short-circuit below
+    // with the existing razorpayOrderId so the checkout opens anyway (retry for free).
+    if (order.status === 'failed') {
+      order.status = 'pending'
+      order.razorpayOrderId = undefined
+      order.razorpayPaymentId = undefined
+      order.razorpaySignature = undefined
+      await order.save()
+    }
+
+    if (order.status === 'paid' || order.status === 'shipped' || order.status === 'refunded') {
+      // Already paid — return existing order details so frontend can still open checkout
+      // for reference (user landed on retry via thank-you page).
+      const user = order.user || (await User.findById(userId).select('name email'))
+      const address = order.addressId
+        ? {
+            name: order.addressId.fullName,
+            contact: order.addressId.phone,
+            line1: order.addressId.addressLine1,
+            line2: order.addressId.addressLine2 || '',
+            city: order.addressId.city,
+            state: order.addressId.state,
+            postal_code: order.addressId.postalCode,
+            country: 'India',
+          }
+        : undefined
+      const amountInPaise = Math.round(order.totalAmount * 100)
+      if (order.razorpayOrderId) {
+        return res.json({
+          orderId: order._id,
+          razorpayOrderId: order.razorpayOrderId,
+          amount: order.totalAmount,
+          amountInPaise,
+          currency: 'INR',
+          keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',
+          user: { name: user?.name || '', email: user?.email || '' },
+          address,
+          receipt: `existing_${order._id}`,
+          alreadyPaid: true,
+        })
+      }
+    }
+
     if (order.status !== 'pending') {
-      return res.status(400).json({ error: 'Order already processed' })
+      return res.status(400).json({ error: `Cannot create payment for order in status: ${order.status}` })
     }
 
-    const user = await User.findById(userId)
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' })
-    }
-
+    // Validate minimum amount — Razorpay rejects anything below ₹1.
     const amountInPaise = Math.round(order.totalAmount * 100)
+    if (!Number.isFinite(amountInPaise) || amountInPaise < RAZORPAY_MIN_PAISE) {
+      return res
+        .status(400)
+        .json({ error: `Order amount is below Razorpay's minimum of ₹1. Received: ₹${(amountInPaise / 100).toFixed(2)}` })
+    }
+
+    // Prefer pre-populated user from the order relation (already populated above),
+    // but fall back to a fresh lookup if the populate returned nothing (edge case).
+    let user = order.user && typeof order.user === 'object' ? order.user : null
+    if (!user) {
+      user = await User.findById(userId).select('name email phone')
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' })
+      }
+    }
+
+    // Verify Razorpay credentials are configured before making the API call,
+    // and return a clear error instead of a cryptic "Unauthorized" from Razorpay.
+    const configuredKey = process.env.RAZORPAY_KEY_ID || ''
+    const configuredSecret = process.env.RAZORPAY_KEY_SECRET || ''
+    if (!configuredKey || !configuredSecret || configuredKey.includes('placeholder') || configuredSecret.includes('placeholder')) {
+      console.error('[Razorpay Create] Credentials not properly set. RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET contain placeholders or are empty.')
+      return res.status(500).json({
+        error: 'Payment gateway is not configured. Please contact support or set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in Vercel environment variables.',
+      })
+    }
+
     const receiptId = `order_${order._id}_${Date.now()}`
 
-    const razorpayOrder = await razorpay.orders.create({
-      amount: amountInPaise,
-      currency: 'INR',
-      receipt: receiptId,
-      notes: {
-        orderId: order._id.toString(),
-        userId: userId.toString(),
-        email: user.email || '',
-      },
-    })
+    let razorpayOrder
+    try {
+      razorpayOrder = await razorpay.orders.create({
+        amount: amountInPaise,
+        currency: 'INR',
+        receipt: receiptId,
+        notes: {
+          orderId: order._id.toString(),
+          userId: userId.toString(),
+          email: user.email || '',
+          phone: user.phone || '',
+        },
+      })
+    } catch (rpError) {
+      const rpCode = rpError?.error?.code || rpError?.code || ''
+      const rpDesc = rpError?.error?.description || rpError?.description || rpError?.message || ''
+      console.error('[Razorpay Create] Razorpay API error:', { code: rpCode, description: rpDesc, statusCode: rpError?.statusCode })
+      let message = 'Failed to create payment session with Razorpay.'
+      if (rpCode === 'BAD_REQUEST_ERROR') message = 'Razorpay rejected the request: ' + (rpDesc || 'invalid order data')
+      else if (rpCode === 'GATEWAY_ERROR' || /timeout|network|fetch|ECONN/i.test(rpDesc || '')) message = 'Payment gateway is temporarily unavailable. Please try again in a moment.'
+      else if (rpDesc) message = rpDesc
+      return res.status(502).json({ error: message, razorpayCode: rpCode || undefined })
+    }
+
+    if (!razorpayOrder || !razorpayOrder.id) {
+      console.error('[Razorpay Create] Razorpay returned no order id:', razorpayOrder)
+      return res.status(502).json({ error: 'Razorpay did not return a valid order id. Please try again.' })
+    }
 
     order.razorpayOrderId = razorpayOrder.id
     await order.save()
@@ -68,17 +160,19 @@ export async function createRazorpayOrder(req, res) {
       amount: order.totalAmount,
       amountInPaise,
       currency: 'INR',
-      keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',
+      keyId: configuredKey,
       user: {
-        name: user.name,
-        email: user.email,
+        name: user.name || '',
+        email: user.email || '',
       },
       address,
       receipt: receiptId,
     })
   } catch (error) {
-    console.error('Razorpay create order error:', error)
-    res.status(500).json({ error: 'Failed to create Razorpay order' })
+    console.error('[Razorpay Create] Unhandled error:', error?.stack || error)
+    res.status(500).json({
+      error: error?.message || 'Failed to create Razorpay order',
+    })
   }
 }
 

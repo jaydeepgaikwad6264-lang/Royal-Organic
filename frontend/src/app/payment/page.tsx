@@ -120,7 +120,26 @@ function PaymentPageContent() {
         }
       }
 
-      const rpOrder = await api.createRazorpayOrder(activeOrderId)
+      let rpOrder: any
+      try {
+        rpOrder = await api.createRazorpayOrder(activeOrderId)
+      } catch (createErr: any) {
+        const msg = createErr?.message || 'Failed to start payment session'
+        console.error('[Payment] createRazorpayOrder failed:', msg)
+        if (msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('login')) {
+          router.push('/login?redirect=' + encodeURIComponent('/payment?orderId=' + activeOrderId))
+          return
+        }
+        setError(msg + (msg.endsWith('.') ? '' : '.'))
+        setProcessing(false)
+        return
+      }
+
+      // Order is already paid — don't show checkout, jump directly to thank-you
+      if (rpOrder?.alreadyPaid) {
+        router.push(`/thank-you?orderId=${activeOrderId}`)
+        return
+      }
 
       if (!window.Razorpay) {
         setError('Razorpay SDK not loaded. Please try again.')
