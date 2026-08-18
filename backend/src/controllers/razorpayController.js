@@ -181,11 +181,17 @@ export async function verifyRazorpayPayment(req, res) {
     const { razorpayOrderId, razorpayPaymentId, razorpaySignature, orderId } = req.body
     const userId = req.user.id
 
+    if (!orderId || !razorpayOrderId || !razorpayPaymentId) {
+      return res.status(400).json({ error: 'orderId, razorpayOrderId, and razorpayPaymentId are required' })
+    }
+
     const order = await Order.findOne({ _id: orderId, user: userId })
     if (!order) {
       return res.status(404).json({ error: 'Order not found' })
     }
 
+    // Idempotency: already paid/shipped/refunded — always return success.
+    // This lets the frontend immediately transition to /thank-you even on retries.
     if (order.status === 'paid' || order.status === 'shipped' || order.status === 'refunded') {
       try {
         if (!order.shipping?.shiprocketOrderId) {
@@ -200,50 +206,86 @@ export async function verifyRazorpayPayment(req, res) {
         status: order.status,
         amount: order.totalAmount,
         razorpayPaymentId: order.razorpayPaymentId || razorpayPaymentId,
+        alreadyPaid: order.status !== 'refunded' ? true : undefined,
       })
     }
 
     const body = razorpayOrderId + '|' + razorpayPaymentId
     const keySecret = process.env.RAZORPAY_KEY_SECRET || 'placeholder_secret'
-    const expectedSignature = crypto
-      .createHmac('sha256', keySecret)
-      .update(body.toString())
-      .digest('hex')
+    const expectedSignature = razorpaySignature
+      ? crypto
+          .createHmac('sha256', keySecret)
+          .update(body.toString())
+          .digest('hex')
+      : null
 
-    let signatureValid = expectedSignature === razorpaySignature
+    let signatureValid = !!expectedSignature && expectedSignature === razorpaySignature
+    let paymentSourceOfTruth = null
 
-    if (!signatureValid && razorpay && razorpayPaymentId) {
+    // Always try to fetch the actual payment status from Razorpay API, both as a
+    // fallback for signature mismatches AND to confirm the payment really is captured.
+    if (razorpay && razorpayPaymentId) {
       try {
         const fetched = await razorpay.payments.fetch(razorpayPaymentId)
+        paymentSourceOfTruth = fetched
         if (fetched && (fetched.status === 'captured' || fetched.status === 'authorized')) {
-          if (fetched.order_id && fetched.order_id === razorpayOrderId) {
+          const razorpayOrderMatches =
+            !fetched.order_id ||
+            fetched.order_id === razorpayOrderId ||
+            (order.razorpayOrderId && fetched.order_id === order.razorpayOrderId)
+          if (razorpayOrderMatches) {
+            if (!signatureValid) {
+              console.warn(
+                '[Razorpay Verify] Signature not valid but payment confirmed via Razorpay API. Marking as paid. paymentId=',
+                razorpayPaymentId,
+                'fetchedStatus=',
+                fetched.status,
+              )
+            }
             signatureValid = true
-            console.warn('[Razorpay Verify] Signature mismatch but payment confirmed via Razorpay API for payment', razorpayPaymentId)
-          } else if (!fetched.order_id) {
-            signatureValid = true
-            console.warn('[Razorpay Verify] Signature mismatch but payment captured (no order_id match required)', razorpayPaymentId)
           }
+        } else if (fetched && fetched.status === 'failed') {
+          // Razorpay says this definitively failed — short-circuit to failed status.
+          console.warn('[Razorpay Verify] Razorpay API reports payment status=failed for', razorpayPaymentId)
+          order.status = 'failed'
+          order.razorpayOrderId = order.razorpayOrderId || razorpayOrderId
+          order.razorpayPaymentId = razorpayPaymentId
+          if (razorpaySignature) order.razorpaySignature = razorpaySignature
+          await order.save()
+          return res.status(400).json({
+            error: 'Payment was not completed successfully on Razorpay.',
+            paymentStatus: 'failed',
+          })
         }
       } catch (fetchErr) {
-        console.error('[Razorpay Verify] Payment fetch fallback failed:', fetchErr.message)
+        console.error('[Razorpay Verify] Payment fetch fallback failed (continuing with HMAC only):', fetchErr.message)
       }
     }
 
     if (!signatureValid) {
-      order.status = 'failed'
-      order.razorpayOrderId = razorpayOrderId
-      order.razorpayPaymentId = razorpayPaymentId
-      order.razorpaySignature = razorpaySignature
-      await order.save()
-      return res
-        .status(400)
-        .json({ error: 'Invalid payment signature. Payment could not be verified.' })
+      // Only mark order=failed if we definitely know the payment failed OR if
+      // signature is invalid AND the API fetch says the payment isn't captured.
+      const fetchSaysCaptured =
+        paymentSourceOfTruth &&
+        (paymentSourceOfTruth.status === 'captured' || paymentSourceOfTruth.status === 'authorized')
+      if (!fetchSaysCaptured) {
+        order.status = 'failed'
+        order.razorpayOrderId = order.razorpayOrderId || razorpayOrderId
+        order.razorpayPaymentId = razorpayPaymentId
+        if (razorpaySignature) order.razorpaySignature = razorpaySignature
+        await order.save()
+      }
+      return res.status(400).json({
+        error: 'Invalid payment signature. Payment could not be verified.',
+        paymentStatus: paymentSourceOfTruth?.status || undefined,
+      })
     }
 
+    // Payment is confirmed valid & captured.
     order.status = 'paid'
-    order.razorpayOrderId = razorpayOrderId
+    order.razorpayOrderId = order.razorpayOrderId || razorpayOrderId
     order.razorpayPaymentId = razorpayPaymentId
-    order.razorpaySignature = razorpaySignature
+    if (razorpaySignature) order.razorpaySignature = razorpaySignature
     order.paymentIntentId = razorpayPaymentId
     await order.save()
 
@@ -259,10 +301,11 @@ export async function verifyRazorpayPayment(req, res) {
       status: order.status,
       amount: order.totalAmount,
       razorpayPaymentId,
+      alreadyPaid: false,
     })
   } catch (error) {
-    console.error('Razorpay verify error:', error)
-    res.status(500).json({ error: 'Failed to verify payment' })
+    console.error('[Razorpay Verify] Unhandled error:', error?.stack || error)
+    res.status(500).json({ error: error?.message || 'Failed to verify payment' })
   }
 }
 
@@ -289,53 +332,98 @@ export async function razorpayWebhook(req, res) {
       return res.status(400).json({ error: 'Missing event or payload' })
     }
 
+    // Unwrap Razorpay's typical payload shape: { payment: { entity: {...} } }
+    const unwrap = (obj) => (obj?.entity ? obj.entity : obj)
+    const paymentRaw =
+      payload.payment ||
+      payload.payment_capture ||
+      payload.payment_failed ||
+      payload.order ||
+      null
+    const payment = unwrap(paymentRaw)
+    const orderRaw = payload.order ? unwrap(payload.order) : null
+
+    // Try multiple strategies to locate the matching DB order.
+    // Order of precedence: notes.orderId (our internal Mongo ID) > order_id (Razorpay order entity ID) > razorpayOrderId match > payment.order_id
+    async function locateOrder() {
+      const candidates = []
+      const notesOrderId = payment?.notes?.orderId || orderRaw?.notes?.orderId || null
+      const rpOrderId = payment?.order_id || orderRaw?.id || null
+
+      if (notesOrderId && typeof notesOrderId === 'string' && /^[0-9a-f]{24}$/i.test(notesOrderId)) {
+        candidates.push({ fn: () => Order.findById(notesOrderId) })
+      }
+      if (rpOrderId && typeof rpOrderId === 'string' && rpOrderId.startsWith('order_')) {
+        candidates.push({ fn: () => Order.findOne({ razorpayOrderId: rpOrderId }) })
+      }
+      if (rpOrderId && typeof rpOrderId === 'string' && /^[0-9a-f]{24}$/i.test(rpOrderId)) {
+        candidates.push({ fn: () => Order.findById(rpOrderId) })
+      }
+      for (const c of candidates) {
+        try {
+          const found = await c.fn()
+          if (found) return found
+        } catch (_) {
+          /* continue */
+        }
+      }
+      return null
+    }
+
     if (event === 'payment.captured' || event === 'order.paid') {
-      const payment = payload.payment || payload.payment_capture
-      const orderId = payment?.notes?.orderId || payment?.order_id
-      if (orderId) {
-        let order
-        if (typeof orderId === 'string' && orderId.startsWith('order_')) {
-          order = await Order.findOne({ razorpayOrderId: orderId })
-        } else {
-          order = await Order.findById(orderId)
-        }
-        if (order && order.status === 'pending') {
+      const order = await locateOrder()
+      if (order) {
+        let changed = false
+        if (order.status !== 'paid' && order.status !== 'shipped' && order.status !== 'refunded') {
           order.status = 'paid'
-          if (payment?.id) order.razorpayPaymentId = payment.id
-          await order.save()
-          console.log(`[Webhook] Order ${order._id} marked as paid`)
-          try {
-            await processShiprocketAsync(order)
-          } catch (err) {
-            console.error('[Razorpay Webhook] Shiprocket async error:', err.message)
-          }
+          changed = true
         }
+        if (payment?.id && order.razorpayPaymentId !== payment.id) {
+          order.razorpayPaymentId = payment.id
+          changed = true
+        }
+        if (orderRaw?.id && !order.razorpayOrderId) {
+          order.razorpayOrderId = orderRaw.id
+          changed = true
+        }
+        if (changed) await order.save()
+        console.log(
+          `[Razorpay Webhook] ${event} → Order ${order._id} status=${order.status}` +
+            (payment?.id ? ` razorpayPaymentId=${payment.id}` : ''),
+        )
+        try {
+          await processShiprocketAsync(order)
+        } catch (err) {
+          console.error('[Razorpay Webhook] Shiprocket async error:', err.message)
+        }
+      } else {
+        console.warn(`[Razorpay Webhook] ${event} received but could not locate DB order. notes.orderId=`, payment?.notes?.orderId, 'order_id=', payment?.order_id)
       }
     }
 
     if (event === 'payment.failed') {
-      const payment = payload.payment
-      const orderId = payment?.notes?.orderId || payment?.order_id
-      if (orderId) {
-        let order
-        if (typeof orderId === 'string' && orderId.startsWith('order_')) {
-          order = await Order.findOne({ razorpayOrderId: orderId })
-        } else {
-          order = await Order.findById(orderId)
-        }
-        if (order) {
+      const order = await locateOrder()
+      if (order) {
+        let changed = false
+        if (order.status !== 'paid' && order.status !== 'shipped' && order.status !== 'refunded') {
           order.status = 'failed'
-          if (payment?.id) order.razorpayPaymentId = payment.id
-          await order.save()
-          console.log(`[Webhook] Order ${order?._id} marked as failed`)
+          changed = true
         }
+        if (payment?.id && order.razorpayPaymentId !== payment.id) {
+          order.razorpayPaymentId = payment.id
+          changed = true
+        }
+        if (changed) await order.save()
+        console.log(`[Razorpay Webhook] ${event} → Order ${order._id} marked as failed`)
       }
     }
 
     res.status(200).json({ status: 'ok' })
   } catch (error) {
-    console.error('Razorpay webhook error:', error)
-    res.status(500).json({ error: 'Webhook processing failed' })
+    console.error('[Razorpay Webhook] Processing error:', error?.stack || error)
+    // Always respond 200 to Razorpay on webhook processing errors so they don't
+    // keep re-sending indefinitely; we log the failure server-side for investigation.
+    res.status(200).json({ status: 'ok', internalError: true })
   }
 }
 

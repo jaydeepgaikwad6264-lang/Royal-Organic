@@ -32,16 +32,45 @@ function ThankYouContent() {
       return
     }
     let cancelled = false
-    const load = () => {
-      api.getOrderById(orderId!)
-        .then(data => {
-          if (cancelled) return
-          setOrder(data)
-          orderRef.current = data
-          setError('')
-        })
-        .catch(err => !cancelled && setError(err.message || 'Could not load order details'))
-        .finally(() => !cancelled && setLoading(false))
+    const load = async () => {
+      try {
+        const data = await api.getOrderById(orderId!)
+        if (cancelled) return
+        setOrder(data)
+        orderRef.current = data
+        setError('')
+
+        // Proactively try to verify if Razorpay says this payment was captured but
+        // our DB order is still stuck in pending/failed. One attempt per cycle,
+        // skip if we don't have enough IDs.
+        if (
+          data &&
+          data.razorpayOrderId &&
+          (paymentId || data.razorpayPaymentId) &&
+          (data.status === 'pending' || data.status === 'failed')
+        ) {
+          try {
+            await api.verifyRazorpayPayment({
+              orderId: data._id,
+              razorpayOrderId: data.razorpayOrderId,
+              razorpayPaymentId: (paymentId || data.razorpayPaymentId) as string,
+              razorpaySignature: '',
+            })
+            const refreshed = await api.getOrderById(orderId!)
+            if (!cancelled) {
+              setOrder(refreshed)
+              orderRef.current = refreshed
+            }
+          } catch (_verifyErr) {
+            // Verification may legitimately fail if signature doesn't match yet;
+            // swallow and wait for either the next poll or the webhook.
+          }
+        }
+      } catch (err: any) {
+        if (!cancelled) setError(err?.message || 'Could not load order details')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
     load()
     const interval = setInterval(() => {
@@ -56,7 +85,7 @@ function ThankYouContent() {
       cancelled = true
       clearInterval(interval)
     }
-  }, [isClient, orderId])
+  }, [isClient, orderId, paymentId])
 
   if (!isClient) return null
 
