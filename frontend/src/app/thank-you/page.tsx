@@ -1,5 +1,5 @@
 'use client'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useClientOnly } from '../../lib/useClientOnly'
@@ -13,6 +13,11 @@ function ThankYouContent() {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const orderRef = useRef<Order | null>(null)
+
+  useEffect(() => {
+    orderRef.current = order
+  }, [order])
 
   const orderId = searchParams.get('orderId')
   const paymentId = searchParams.get('paymentId')
@@ -32,6 +37,7 @@ function ThankYouContent() {
         .then(data => {
           if (cancelled) return
           setOrder(data)
+          orderRef.current = data
           setError('')
         })
         .catch(err => !cancelled && setError(err.message || 'Could not load order details'))
@@ -39,7 +45,8 @@ function ThankYouContent() {
     }
     load()
     const interval = setInterval(() => {
-      if (order && (order.status === 'paid' || order.status === 'shipped' || order.status === 'refunded')) {
+      const cur = orderRef.current
+      if (cur && (cur.status === 'paid' || cur.status === 'shipped' || cur.status === 'refunded')) {
         clearInterval(interval)
         return
       }
@@ -221,7 +228,7 @@ function ThankYouContent() {
                         <h3 className="font-bold text-lg mb-1">Payment was not completed</h3>
                         {failMessage && <p className="text-sm opacity-90 mb-1">{failMessage}</p>}
                         <p className="text-sm opacity-90">
-                          You have NOT been charged. Please go to My Orders and click "Retry Payment" or try again from the Shop page.
+                          You have NOT been charged. Please go to My Orders and click &apos;Retry Payment&apos; or try again from the Shop page.
                           {paymentId && <span className="block mt-1">Reference: <span className="font-mono font-semibold">{paymentId}</span></span>}
                         </p>
                       </div>
