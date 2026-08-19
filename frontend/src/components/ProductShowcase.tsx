@@ -19,54 +19,54 @@ export default function ProductShowcase({ title, description, image, images = []
   const reduce = useReducedMotion()
   const imgMotion = { initial: { opacity: 0, x: reduce ? 0 : (align === 'left' ? -20 : 20) }, whileInView: { opacity: 1, x: 0 } }
   const textMotion = { initial: { opacity: 0, x: reduce ? 0 : (align === 'left' ? 20 : -20) }, whileInView: { opacity: 1, x: 0 } }
-  
+
   const allImages = images.length > 0 ? images : [image]
-  
+
   return (
     <section className="bg-royal-beige">
-      <div className="container py-12">
-        <div className={`grid md:grid-cols-2 gap-10 items-start ${align === 'right' ? 'md:[&>*:first-child]:order-2' : ''}`}>
-          <motion.div {...imgMotion} transition={{ duration: 0.6 }} viewport={{ once: true }} className="space-y-4">
-            <div className="relative h-80 md:h-[500px] rounded-xl overflow-hidden border border-royal-sand bg-white shadow-soft">
+      <div className="container py-10 md:py-12">
+        <div className={`grid md:grid-cols-2 gap-6 md:gap-10 items-start ${align === 'right' ? 'md:[&>*:first-child]:order-2' : ''}`}>
+          <motion.div {...imgMotion} transition={{ duration: 0.6 }} viewport={{ once: true }} className="space-y-3 md:space-y-4">
+            <div className="relative aspect-[4/3] sm:aspect-square md:aspect-auto md:h-[500px] w-full rounded-xl overflow-hidden border border-royal-sand bg-gradient-to-br from-white via-royal-beige/60 to-stone-50 shadow-soft">
               <Image
                 src={selectedImage}
                 alt={title}
                 fill
-                className="object-contain"
+                className="object-contain p-2 sm:p-4 md:p-6"
                 sizes="(max-width: 768px) 100vw, 50vw"
                 loading="lazy"
               />
             </div>
             {allImages.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2">
+              <div className="flex gap-2 sm:gap-3 overflow-x-auto overflow-y-hidden pb-2 pt-1 snap-x snap-mandatory touch-pan-x scrollbar-hide -mx-1 px-1">
                 {allImages.map((img, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(img)}
-                    className={`relative h-20 w-20 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
-                      selectedImage === img ? 'border-royal-green' : 'border-transparent hover:border-royal-sand'
+                    className={`relative h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 flex-shrink-0 snap-start rounded-lg overflow-hidden border-2 transition-all ${
+                      selectedImage === img ? 'border-royal-green shadow-md scale-[1.02]' : 'border-transparent hover:border-royal-sand bg-white'
                     }`}
                   >
                     <Image
                       src={img}
                       alt={`${title} ${index + 1}`}
                       fill
-                      className="object-cover"
+                      className="object-contain p-0.5 sm:p-1"
                     />
                   </button>
                 ))}
               </div>
             )}
           </motion.div>
-          <motion.div {...textMotion} transition={{ duration: 0.6 }} viewport={{ once: true }} className="pt-4">
-            <h3 className="font-heading text-2xl md:text-3xl">{title}</h3>
+          <motion.div {...textMotion} transition={{ duration: 0.6 }} viewport={{ once: true }} className="pt-2 md:pt-4">
+            <h3 className="font-heading text-2xl md:text-3xl leading-tight">{title}</h3>
             <p className="mt-3 text-royal-green/80">{description}</p>
-            <div className="mt-6 flex gap-4">
-              <motion.div whileHover={{ scale: 1.03 }}>
-                <Link href={viewHref} className="btn-outline px-6 py-3">View Product</Link>
+            <div className="mt-6 flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
+                <Link href={viewHref} className="btn-outline px-6 py-3 w-full sm:w-auto inline-flex justify-center min-h-[52px]">View Product</Link>
               </motion.div>
-              <motion.div whileHover={{ scale: 1.03 }}>
-                <Link href={buyHref} className="btn-primary px-6 py-3">Buy Now</Link>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
+                <Link href={buyHref} className="btn-primary px-6 py-3 w-full sm:w-auto inline-flex justify-center min-h-[52px]">Buy Now</Link>
               </motion.div>
             </div>
           </motion.div>
