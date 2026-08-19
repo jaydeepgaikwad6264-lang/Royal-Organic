@@ -1,20 +1,29 @@
 import Section from '../../components/Section'
 import Image from 'next/image'
 import { Metadata } from 'next'
-import certificateImg from '../../lib/certificate.jpeg'
+import certAyush from '../../lib/certificates/Ayush License_New_front only (1)_page-0001.jpg'
+import certUsfda from '../../lib/certificates/HERBALFARM LIFECARE_USFDA_page-0001.jpg'
+import certIec from '../../lib/certificates/certificateOfIEC_page-0001.jpg'
+import certLicense from '../../lib/certificates/license_page-0001.jpg'
 
 export const metadata: Metadata = {
   title: 'Science & Quality',
   description:
-    'Nutritional science behind moringa, quality assurance, and lab testing transparency.',
+    'Nutritional science behind moringa, quality assurance, lab testing transparency, and official certifications.',
 }
+
+const certificates = [
+  { src: certAyush, alt: 'Ayush License Certificate' },
+  { src: certUsfda, alt: 'USFDA Registration Certificate' },
+  { src: certIec, alt: 'IEC Certificate' },
+  { src: certLicense, alt: 'Manufacturing License Certificate' },
+]
 
 export default function ScienceQualityPage() {
   return (
     <main>
       <Section>
         <div className="grid lg:grid-cols-2 gap-12 items-start">
-          {/* Left Content */}
           <div>
             <h1 className="section-title">Nutritional Science</h1>
 
@@ -61,15 +70,26 @@ export default function ScienceQualityPage() {
             </div>
           </div>
 
-          {/* Right Certificate Image */}
-          <div className="flex justify-center lg:sticky lg:top-24">
-            <div className="rounded-xl overflow-hidden border border-royal-sand bg-white shadow-soft p-4">
-              <Image
-                src={certificateImg}
-                alt="Royal Organics Certificate"
-                className="w-full h-auto rounded-lg"
-                priority
-              />
+          <div className="space-y-5 lg:sticky lg:top-24">
+            <h2 className="font-heading text-2xl">Our Certifications</h2>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {certificates.map((cert) => (
+                <div
+                  key={cert.alt}
+                  className="aspect-[4/3] rounded-2xl border border-emerald-900/10 bg-gradient-to-br from-stone-50 via-white to-amber-50/70 shadow-[0_10px_30px_-12px_rgba(6,78,59,0.25)] p-3 relative overflow-hidden"
+                >
+                  <div className="absolute inset-2 rounded-xl ring-1 ring-inset ring-emerald-900/10 pointer-events-none" />
+                  <div className="relative w-full h-full rounded-lg overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.04)] bg-white">
+                    <Image
+                      src={cert.src}
+                      alt={cert.alt}
+                      fill
+                      className="object-contain p-2"
+                      sizes="(max-width: 1024px) 50vw, 25vw"
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
