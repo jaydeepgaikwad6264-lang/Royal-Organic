@@ -5,6 +5,7 @@ import { products } from '../../data/products'
 import { formatINR } from '../../lib/format'
 import Link from 'next/link'
 import { useClientOnly } from '../../lib/useClientOnly'
+import { FaShoppingCart, FaArrowRight } from 'react-icons/fa'
 
 export default function CartPage() {
   const { cart, updateQuantity, removeFromCart, clearCart, totalItems, totalPrice, loading: cartLoading } = useCart()
@@ -15,17 +16,21 @@ export default function CartPage() {
 
   if (cart.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-emerald-50 py-12 sm:py-16 px-4">
-        <div className="container max-w-4xl mx-auto text-center">
-          <div className="text-6xl sm:text-8xl mb-4 sm:mb-6 animate-bounce">🛒</div>
-          <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-3 sm:mb-4">Your Shopping Cart is Empty</h1>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-emerald-50 py-10 sm:py-16 px-3 sm:px-4 flex items-start sm:items-center justify-center">
+        <div className="container max-w-4xl mx-auto text-center w-full">
+          <div className="mb-4 sm:mb-6 flex justify-center">
+            <div className="text-5xl sm:text-7xl animate-bounce flex">
+              <FaShoppingCart className="w-full h-full text-emerald-600 drop-shadow-md" aria-hidden />
+            </div>
+          </div>
+          <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 px-1">Your Shopping Cart is Empty</h1>
           <p className="text-gray-600 text-base sm:text-lg mb-6 sm:mb-10 px-2">Looks like you haven&apos;t added anything to your cart yet!</p>
-          <Link href="/shop" className="inline-flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold text-lg sm:text-xl shadow-xl sm:shadow-2xl hover:shadow-emerald-200 transition-all">
-            🌿 Browse Products
-            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </Link>
+          <div className="flex justify-center">
+            <Link href="/shop" className="inline-flex items-center justify-center gap-2 sm:gap-3 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold text-base sm:text-xl shadow-xl sm:shadow-2xl hover:shadow-emerald-200 transition-all min-h-[3.5rem]">
+              <span>🌿 Browse Products</span>
+              <FaArrowRight className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" aria-hidden />
+            </Link>
+          </div>
         </div>
       </div>
     )
@@ -39,19 +44,21 @@ export default function CartPage() {
   const finalTotal = totalPrice
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-emerald-50 py-6 sm:py-12 px-3 sm:px-4">
-      <div className="container max-w-6xl mx-auto">
-        <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 mb-6 sm:mb-10 flex items-center gap-2 sm:gap-3 px-1">
-          🛒 Your Cart <span className="text-emerald-600 text-lg sm:text-3xl">({totalItems} items)</span>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-emerald-50 py-4 sm:py-12 px-2.5 sm:px-4">
+      <div className="container max-w-6xl mx-auto w-full flex flex-col items-stretch sm:items-start">
+        <h1 className="w-full text-xl sm:text-2xl md:text-4xl font-bold text-gray-800 mb-5 sm:mb-10 flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 px-1">
+          <FaShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-emerald-600 flex-shrink-0" aria-hidden />
+          <span>Your Cart</span>
+          <span className="text-emerald-600 text-base sm:text-xl md:text-3xl">({totalItems} items)</span>
         </h1>
 
-        <div className="grid lg:grid-cols-3 gap-4 sm:gap-8">
-          <div className="lg:col-span-2 space-y-3 sm:space-y-6">
+        <div className="grid w-full lg:grid-cols-3 gap-3 sm:gap-6 md:gap-8">
+          <div className="lg:col-span-2 space-y-3 sm:space-y-5 md:space-y-6">
             {cart.map((item) => {
               const product = products.find(p => p.id === item.productId)
               if (!product) return null
               return (
-                <div key={item.productId} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-3 sm:p-6 flex flex-col sm:flex-row gap-3 sm:gap-6 hover:shadow-xl transition-shadow">
+                <div key={item.productId} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-3 sm:p-6 flex flex-col sm:flex-row gap-3 sm:gap-6 hover:shadow-xl transition-shadow w-full">
                   <div className="w-full sm:w-24 h-24 sm:h-32 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
                     <div className="text-4xl sm:text-5xl">🌱</div>
                   </div>
@@ -135,9 +142,9 @@ export default function CartPage() {
             })}
           </div>
           
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-4 sm:p-6 sticky top-20 lg:top-28">
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Order Summary</h3>
+          <div className="lg:col-span-1 w-full flex justify-center lg:justify-end">
+            <div className="w-full max-w-md lg:max-w-none bg-white rounded-2xl shadow-xl border border-gray-100 p-4 sm:p-6 sticky top-20 lg:top-28 mx-auto">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 text-center sm:text-left">Order Summary</h3>
               
               <div className="space-y-2 sm:space-y-4 mb-4 sm:mb-6">
                 <div className="flex justify-between text-gray-700 text-sm sm:text-base">
@@ -157,16 +164,16 @@ export default function CartPage() {
               </div>
               
               <div className="border-t border-gray-200 pt-3 sm:pt-4 mb-4 sm:mb-6">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-2">
                   <span className="text-lg sm:text-xl font-bold text-gray-800">Total Amount</span>
-                  <span className="text-xl sm:text-2xl font-bold text-emerald-700">{formatINR(finalTotal)}</span>
+                  <span className="text-xl sm:text-2xl font-bold text-emerald-700 whitespace-nowrap">{formatINR(finalTotal)}</span>
                 </div>
-                <p className="text-green-600 text-xs sm:text-sm mt-1 sm:mt-2 flex items-center gap-1">
+                <p className="text-green-600 text-xs sm:text-sm mt-1 sm:mt-2 flex items-center justify-center sm:justify-start gap-1 text-center sm:text-left">
                   ✅ Free delivery applied on all orders!
                 </p>
               </div>
               
-              <Link href="/address" className="w-full bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 py-3 sm:py-4 rounded-xl font-bold text-lg sm:text-xl text-center shadow-lg hover:shadow-xl transition-all block mb-3 sm:mb-4">
+              <Link href="/address" className="w-full bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-xl text-center shadow-lg hover:shadow-xl transition-all block mb-3 sm:mb-4 min-h-[3.5rem] flex items-center justify-center">
                 Proceed to Checkout
               </Link>
               

@@ -7,6 +7,9 @@ import { usePathname } from 'next/navigation'
 import { useClientOnly } from '../lib/useClientOnly'
 import { products } from '../data/products'
 import { formatINR } from '../lib/format'
+import { FaShoppingCart, FaTimes } from 'react-icons/fa'
+import Image from 'next/image'
+import logoImg from '../lib/logo.jpeg'
 
 export default function Navbar() {
   const { cart, totalItems, totalPrice, removeFromCart, updateQuantity, loading: cartLoading, fetchCart } = useCart()
@@ -57,12 +60,20 @@ export default function Navbar() {
       className="sticky top-0 z-50 bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-900 shadow-lg"
       aria-label="Primary"
     >
-      <div className="container flex items-center justify-between h-16 md:h-20 px-3 md:px-8">
-        <Link href="/" className="font-heading text-lg sm:text-2xl md:text-3xl text-yellow-300 font-bold tracking-wide hover:scale-105 transition-transform" aria-label="Royal Organics home">
-          🌿 Royal Organics
+      <div className="container flex items-center justify-between h-16 md:h-20 px-3 md:px-8 w-full">
+        <Link href="/" className="font-heading text-base sm:text-lg md:text-2xl lg:text-3xl text-yellow-300 font-bold tracking-wide hover:scale-105 transition-transform flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-1" aria-label="Royal Organics home">
+          <Image
+            src={logoImg}
+            alt="Royal Organics Logo"
+            width={40}
+            height={40}
+            className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 flex-shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] rounded-md object-cover"
+            priority
+          />
+          <span className="truncate">Royal Organics</span>
         </Link>
         
-        <div className="hidden md:flex items-center gap-6 lg:gap-8">
+        <div className="hidden md:flex items-center gap-6 lg:gap-8 flex-shrink-0">
           {navLinks.map(link => (
             <Link key={link.href} href={link.href} className="text-white hover:text-yellow-300 font-medium transition-colors whitespace-nowrap">
               {link.label}
@@ -70,53 +81,84 @@ export default function Navbar() {
           ))}
         </div>
         
-        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
-          <div className="relative">
+        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-shrink-0 justify-end">
+          <div className="relative sm:static">
             <button
               onClick={() => { setShowMiniCart(!showMiniCart); setShowMobileMenu(false) }}
-              className="bg-yellow-400 hover:bg-yellow-300 text-emerald-900 px-2 sm:px-3 md:px-5 py-2 rounded-full font-semibold flex items-center gap-1 sm:gap-2 shadow-md hover:shadow-xl transition-all text-sm md:text-base"
+              className="bg-yellow-400 hover:bg-yellow-300 text-emerald-900 px-2 sm:px-3 md:px-5 py-1.5 sm:py-2 rounded-full font-semibold flex items-center gap-1 sm:gap-2 shadow-md hover:shadow-xl transition-all text-xs sm:text-sm md:text-base max-w-[calc(100vw-7rem)] sm:max-w-none"
+              aria-label={totalItems > 0 ? `Cart with ${totalItems} items` : 'Cart'}
             >
-              🛒
-              <span className="hidden sm:inline">Cart</span>
+              <FaShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" aria-hidden />
+              <span className="hidden sm:inline whitespace-nowrap">Cart</span>
               {totalItems > 0 && (
-                <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 md:w-6 md:h-6 flex items-center justify-center shadow-sm">
-                  {totalItems}
+                <span className="bg-red-500 text-white text-[10px] sm:text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 flex items-center justify-center shadow-sm flex-shrink-0">
+                  {totalItems > 99 ? '99+' : totalItems}
                 </span>
               )}
             </button>
-            
+
             <AnimatePresence>
               {showMiniCart && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-96 bg-white rounded-xl shadow-2xl border border-gray-200 z-50"
-                  style={{ width: 'min(calc(100vw - 1.5rem), 24rem)' }}
-                >
-                  <div className="p-4 border-b border-gray-100">
-                    <h3 className="text-lg font-bold text-gray-800">Your Cart</h3>
+                <>
+                  <motion.div
+                    key="minicart-backdrop"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setShowMiniCart(false)}
+                    className="fixed inset-0 z-40 bg-black/40 sm:bg-black/30 backdrop-blur-sm sm:backdrop-blur-[1px]"
+                    aria-hidden
+                  />
+                  <motion.div
+                    key="minicart-panel"
+                    initial={{ opacity: 0, y: 20, x: 0 }}
+                    animate={{ opacity: 1, y: 0, x: 0 }}
+                    exit={{ opacity: 0, y: 20, x: 0 }}
+                    transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+                    className="fixed sm:absolute left-0 right-0 sm:left-auto sm:right-0 bottom-0 sm:bottom-auto sm:top-full z-50 sm:mt-2 w-full sm:w-[min(26rem,calc(100vw-1.5rem))] max-h-[85dvh] sm:max-h-[70vh] bg-white sm:rounded-xl rounded-t-2xl sm:shadow-2xl shadow-[0_-8px_32px_rgba(0,0,0,0.2)] border-t sm:border border-gray-200 flex flex-col pb-[env(safe-area-inset-bottom)] sm:pb-0 overflow-hidden"
+                  >
+                  <div className="sm:hidden flex justify-center pt-2.5 pb-1.5">
+                    <div className="w-10 h-1 rounded-full bg-gray-300" />
+                  </div>
+                  <div className="p-4 sm:p-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                      <FaShoppingCart className="w-5 h-5 text-emerald-700" aria-hidden />
+                      <h3 className="text-lg font-bold text-gray-800">Your Cart</h3>
+                      {totalItems > 0 && (
+                        <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                          {totalItems} {totalItems === 1 ? 'item' : 'items'}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setShowMiniCart(false)}
+                      className="sm:hidden p-2 -mr-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      aria-label="Close cart"
+                    >
+                      <FaTimes className="w-5 h-5" />
+                    </button>
                   </div>
                   
-                  <div className="max-h-[60vh] overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto overscroll-contain">
                     {cart.length === 0 ? (
-                      <div className="p-8 text-center text-gray-500">
-                        <p className="text-4xl mb-2">🛒</p>
-                        <p>Your cart is empty!</p>
+                      <div className="p-10 sm:p-8 text-center text-gray-500">
+                        <p className="flex justify-center mb-3"><FaShoppingCart className="w-14 h-14 sm:w-10 sm:h-10 text-gray-300" aria-hidden /></p>
+                        <p className="text-base sm:text-sm font-medium text-gray-600">Your cart is empty!</p>
+                        <p className="text-sm text-gray-400 mt-1">Add some organic goodness to get started.</p>
                       </div>
                     ) : (
                       cart.map((item) => {
                         const product = products.find(p => p.id === item.productId)
                         return (
-                          <div key={item.productId} className="p-4 border-b border-gray-100 hover:bg-gray-50">
-                            <div className="flex gap-3 items-start">
-                              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-lg flex items-center justify-center text-xl sm:text-2xl flex-shrink-0">
+                          <div key={item.productId} className="p-4 sm:p-4 border-b border-gray-100 hover:bg-gray-50 active:bg-gray-100 sm:active:bg-transparent">
+                            <div className="flex gap-3 sm:gap-3 items-start">
+                              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-lg flex items-center justify-center text-2xl sm:text-2xl flex-shrink-0">
                                 🌱
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-gray-800 text-sm truncate">{product?.name}</p>
-                                <p className="text-xs sm:text-sm text-gray-500">{formatINR(item.pricePerUnit)} per unit</p>
-                                <div className="flex items-center gap-2 mt-2">
+                                <p className="font-semibold text-gray-800 text-sm sm:text-sm truncate">{product?.name}</p>
+                                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">{formatINR(item.pricePerUnit)} per unit</p>
+                                <div className="flex items-center gap-2 mt-3">
                                   <button
                                     onClick={async () => {
                                       if (item.quantity > 1) {
@@ -129,11 +171,12 @@ export default function Navbar() {
                                       }
                                     }}
                                     disabled={item.quantity <= 1 || processing === item.productId}
-                                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold disabled:opacity-50"
+                                    className="w-11 h-11 sm:w-8 sm:h-8 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 font-bold disabled:opacity-50 transition-colors text-lg sm:text-base flex items-center justify-center"
+                                    aria-label={`Decrease quantity of ${product?.name}`}
                                   >
                                     -
                                   </button>
-                                  <span className="font-semibold text-gray-800 w-6 sm:w-8 text-center text-sm">{item.quantity}</span>
+                                  <span className="font-bold text-gray-800 w-8 sm:w-8 text-center text-base sm:text-sm">{item.quantity}</span>
                                   <button
                                     onClick={async () => {
                                       setProcessing(item.productId)
@@ -144,14 +187,15 @@ export default function Navbar() {
                                       }
                                     }}
                                     disabled={processing === item.productId}
-                                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold disabled:opacity-50"
+                                    className="w-11 h-11 sm:w-8 sm:h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold disabled:opacity-50 transition-colors text-lg sm:text-base flex items-center justify-center"
+                                    aria-label={`Increase quantity of ${product?.name}`}
                                   >
                                     +
                                   </button>
                                 </div>
                               </div>
-                              <div className="text-right flex-shrink-0">
-                                <p className="font-bold text-gray-800 text-sm">{formatINR(item.quantity * item.pricePerUnit)}</p>
+                              <div className="text-right flex-shrink-0 flex flex-col items-end gap-2">
+                                <p className="font-bold text-gray-800 text-sm sm:text-sm whitespace-nowrap">{formatINR(item.quantity * item.pricePerUnit)}</p>
                                 <button
                                   onClick={async () => {
                                     setProcessing(item.productId)
@@ -162,7 +206,7 @@ export default function Navbar() {
                                     }
                                   }}
                                   disabled={processing === item.productId}
-                                  className="text-red-500 hover:text-red-700 text-xs mt-1 disabled:opacity-50"
+                                  className="text-red-500 hover:text-red-700 active:text-red-800 text-xs sm:text-xs mt-0 disabled:opacity-50 transition-colors min-h-[44px] px-3 py-2 -mr-3 rounded-md sm:min-h-0 sm:px-0 sm:py-0 sm:rounded-none"
                                 >
                                   Remove
                                 </button>
@@ -175,17 +219,22 @@ export default function Navbar() {
                   </div>
                   
                   {cart.length > 0 && (
-                    <div className="p-4 bg-gray-50 rounded-b-xl">
+                    <div className="p-4 sm:p-4 bg-gray-50 border-t border-gray-100 flex-shrink-0">
                       <div className="flex justify-between items-center mb-4">
-                        <span className="text-gray-700 font-semibold text-sm sm:text-base">Total:</span>
-                        <span className="text-lg sm:text-xl font-bold text-emerald-800">{formatINR(totalPrice)}</span>
+                        <span className="text-gray-700 font-semibold text-base sm:text-base">Total:</span>
+                        <span className="text-xl sm:text-xl font-bold text-emerald-800">{formatINR(totalPrice)}</span>
                       </div>
-                      <Link href="/cart" onClick={() => setShowMiniCart(false)} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg font-semibold text-center block transition-colors">
-                        View Cart & Checkout
+                      <Link
+                        href="/cart"
+                        onClick={() => setShowMiniCart(false)}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white py-3.5 sm:py-3 rounded-xl sm:rounded-lg font-semibold text-center block transition-colors text-base sm:text-base shadow-lg shadow-emerald-600/25 min-h-[52px] flex items-center justify-center"
+                      >
+                        View Cart &amp; Checkout
                       </Link>
                     </div>
                   )}
                 </motion.div>
+                </>
               )}
             </AnimatePresence>
           </div>

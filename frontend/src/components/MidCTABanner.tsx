@@ -3,7 +3,7 @@ import Link from 'next/link'
 import Image, { type StaticImageData } from 'next/image'
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 import { useRef } from 'react'
-import moringaCapsulesFront from '../lib/front image.jpeg'
+import cap1 from '../lib/moringa capsules/1.jpeg'
 
 export default function MidCTABanner() {
   const reduce = useReducedMotion()
@@ -24,7 +24,7 @@ export default function MidCTABanner() {
           <div className="absolute inset-0 bg-gradient-to-r from-royal-tea/30 to-royal-gold/20" />
           <motion.div style={{ y }} className="absolute inset-0">
             <Image
-              src={moringaCapsulesFront}
+              src={cap1}
               alt=""
               fill
               className="object-cover opacity-25"

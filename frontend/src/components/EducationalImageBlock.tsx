@@ -2,7 +2,7 @@
 import Image, { type StaticImageData } from 'next/image'
 import { motion, useReducedMotion } from 'framer-motion'
 import moringaPowderFront from '../lib/Moringa powder front.png'
-import moringaCapsulesFront from '../lib/front image.jpeg'
+import cap2 from '../lib/moringa capsules/2.jpeg'
 
 const bullets = [
   'Rich in antioxidants',
@@ -35,7 +35,7 @@ export default function EducationalImageBlock() {
             </div>
             <div className="relative h-40 md:h-56 rounded-xl overflow-hidden border border-royal-sand bg-white shadow-soft">
               <Image
-                src={moringaCapsulesFront}
+                src={cap2}
                 alt="Capsule macro shot"
                 fill
                 className="object-cover"

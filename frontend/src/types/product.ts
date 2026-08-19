@@ -12,7 +12,7 @@ export interface Product {
   benefits: string[]
   dosage: string
   ingredients: string[]
-  badges: ('Non-GMO' | 'Vegan' | 'Lab Tested')[]
+  badges: ('Non-GMO' | 'Vegan' | 'Lab Tested' | 'Gluten Free' | 'Plant-Based')[]
   image: string | StaticImageData
   images: (string | StaticImageData)[]
   price: number

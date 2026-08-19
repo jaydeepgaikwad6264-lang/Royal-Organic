@@ -44,3 +44,19 @@ html, body {
 .section-subtitle {
   @apply text-royal-green/70 mt-2;
 }
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  animation: marquee 40s linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation-duration: 80s;
+  }
+}
