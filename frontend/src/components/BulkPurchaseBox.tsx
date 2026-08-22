@@ -53,6 +53,10 @@ export default function BulkPurchaseBox({
     setProcessing(true)
     try {
       await addToCart(product!.id, qty, unitPrice)
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        window.dispatchEvent(new CustomEvent('royal:openCart'))
+      }
     } catch (err: any) {
       alert(`Failed to add to cart: ${err.message || 'Unknown error'}`)
     } finally {

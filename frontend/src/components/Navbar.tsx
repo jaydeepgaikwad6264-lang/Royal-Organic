@@ -33,6 +33,16 @@ export default function Navbar() {
     return () => window.removeEventListener('storage', checkAuth)
   }, [pathname, isClient])
 
+  useEffect(() => {
+    if (!isClient) return
+    const onOpenCart = () => {
+      setShowMiniCart(true)
+      setShowMobileMenu(false)
+    }
+    window.addEventListener('royal:openCart', onOpenCart)
+    return () => window.removeEventListener('royal:openCart', onOpenCart)
+  }, [isClient])
+
   const handleLogout = () => {
     if (!isClient) return
     localStorage.removeItem('token')
@@ -49,6 +59,7 @@ export default function Navbar() {
     { href: '/about', label: 'About' },
     { href: '/science-quality', label: 'Science & Quality' },
     { href: '/faq', label: 'FAQ' },
+    { href: '/feedback', label: 'Feedback' },
     { href: '/contact', label: 'Contact Us' },
   ]
 

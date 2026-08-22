@@ -114,6 +114,15 @@ export type Cart = {
   updatedAt: string
 }
 
+export type Feedback = {
+  _id: string
+  name: string
+  email?: string
+  message: string
+  rating: number
+  createdAt: string
+}
+
 export type RazorpayOrderResponse = {
   orderId: string
   razorpayOrderId: string
@@ -195,4 +204,9 @@ export const api = {
     razorpayPaymentId: string
     razorpaySignature: string
   }) => request<RazorpayVerifyResponse>('/api/razorpay/verify-payment', { method: 'POST', json: data }),
+
+  // Feedback
+  createFeedback: (data: { name: string; email?: string; message: string; rating?: number }) =>
+    request<{ ok: true; feedback: Feedback }>('/api/feedback', { method: 'POST', json: data }),
+  listFeedback: () => request<{ feedbacks: Feedback[] }>('/api/feedback'),
 }

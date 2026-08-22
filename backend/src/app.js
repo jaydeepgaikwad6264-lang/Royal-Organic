@@ -17,6 +17,7 @@ import addressRoutes from './routes/addressRoutes.js'
 import cartRoutes from './routes/cartRoutes.js'
 import razorpayRoutes from './routes/razorpayRoutes.js'
 import shiprocketRoutes from './routes/shiprocketRoutes.js'
+import feedbackRoutes from './routes/feedbackRoutes.js'
 import { notFound, errorHandler } from './middlewares/error.js'
 
 dotenv.config()
@@ -52,6 +53,7 @@ app.use('/api/contact', contactRoutes)
 app.use('/api/cart', cartRoutes)
 app.use('/api/razorpay', razorpayRoutes)
 app.use('/api/shiprocket', shiprocketRoutes)
+app.use('/api/feedback', feedbackRoutes)
 
 // 404 and errors
 app.use(notFound)
