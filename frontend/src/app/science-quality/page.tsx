@@ -6,10 +6,31 @@ import certUsfda from '../../lib/certificates/HERBALFARM LIFECARE_USFDA_page-000
 import certIec from '../../lib/certificates/certificateOfIEC_page-0001.jpg'
 import certLicense from '../../lib/certificates/license_page-0001.jpg'
 
+const SITE_URL = 'https://royalorganics.in'
+
 export const metadata: Metadata = {
-  title: 'Science & Quality',
+  title: 'Science & Quality — Lab Testing & Certifications | Royal Organics',
   description:
-    'Nutritional science behind moringa, quality assurance, lab testing transparency, and official certifications.',
+    'Nutritional science behind moringa, quality assurance protocols, transparent third-party lab testing, and official Ayush, USFDA & manufacturing certifications from Royal Organics.',
+  keywords: [
+    'moringa nutritional science',
+    'moringa lab testing',
+    'ayush certified moringa',
+    'usfda registered moringa',
+    'moringa quality assurance',
+    'certificates of analysis coa',
+  ],
+  alternates: {
+    canonical: '/science-quality',
+  },
+  openGraph: {
+    title: 'Science & Quality — Royal Organics Lab Testing',
+    description:
+      'Nutritional science, QA protocols, lab testing transparency, and official certifications for premium moringa.',
+    url: `${SITE_URL}/science-quality`,
+    type: 'article',
+    locale: 'en_IN',
+  },
 }
 
 const certificates = [
@@ -23,7 +44,7 @@ export default function ScienceQualityPage() {
   return (
     <main>
       <Section>
-        <div className="grid lg:grid-cols-2 gap-12 items-start">
+        <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 md:gap-12 items-start">
           <div>
             <h1 className="section-title">Nutritional Science</h1>
 
@@ -32,7 +53,7 @@ export default function ScienceQualityPage() {
               and antioxidants.
             </p>
 
-            <div className="mt-6 prose prose-stone max-w-none">
+            <div className="mt-5 sm:mt-6 prose prose-stone max-w-none">
               <p>
                 Studies suggest moringa supports immune function, healthy skin,
                 energy metabolism, and digestive balance. We prioritize
@@ -70,13 +91,13 @@ export default function ScienceQualityPage() {
             </div>
           </div>
 
-          <div className="space-y-5 lg:sticky lg:top-24">
-            <h2 className="font-heading text-2xl">Our Certifications</h2>
-            <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-4 sm:space-y-5 lg:sticky lg:top-24">
+            <h2 className="font-heading text-xl sm:text-2xl">Our Certifications</h2>
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-2 gap-4">
               {certificates.map((cert) => (
                 <div
                   key={cert.alt}
-                  className="aspect-[4/3] rounded-2xl border border-emerald-900/10 bg-gradient-to-br from-stone-50 via-white to-amber-50/70 shadow-[0_10px_30px_-12px_rgba(6,78,59,0.25)] p-3 relative overflow-hidden"
+                  className="aspect-[4/3] rounded-2xl border border-emerald-900/10 bg-gradient-to-br from-stone-50 via-white to-amber-50/70 shadow-[0_10px_30px_-12px_rgba(6,78,59,0.25)] p-2.5 sm:p-3 relative overflow-hidden"
                 >
                   <div className="absolute inset-2 rounded-xl ring-1 ring-inset ring-emerald-900/10 pointer-events-none" />
                   <div className="relative w-full h-full rounded-lg overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.04)] bg-white">
@@ -84,7 +105,7 @@ export default function ScienceQualityPage() {
                       src={cert.src}
                       alt={cert.alt}
                       fill
-                      className="object-contain p-2"
+                      className="object-contain p-1.5 sm:p-2"
                       sizes="(max-width: 1024px) 50vw, 25vw"
                     />
                   </div>

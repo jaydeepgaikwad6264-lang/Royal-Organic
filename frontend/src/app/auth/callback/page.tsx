@@ -1,3 +1,19 @@
+import type { Metadata } from 'next'
+export const metadata: Metadata = {
+  title: 'Authenticating...',
+  description: 'Completing sign-in for Royal Organics. Please wait while we verify your account and redirect you.',
+  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
+  alternates: { canonical: '/auth/callback' },
+  openGraph: {
+    title: 'Authenticating | Royal Organics',
+    description: 'Completing sign-in for Royal Organics.',
+    url: 'https://royalorganics.in/auth/callback',
+    type: 'website',
+    locale: 'en_IN',
+  },
+  twitter: { card: 'summary' },
+}
+
 'use client'
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'

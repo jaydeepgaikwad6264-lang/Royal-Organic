@@ -1,3 +1,19 @@
+import type { Metadata } from 'next'
+export const metadata: Metadata = {
+  title: 'Secure Payment Checkout',
+  description: 'Complete your Royal Organics order securely via Razorpay. Pay with UPI, Cards, Net Banking or Wallets — 100% encrypted and RBI regulated.',
+  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
+  alternates: { canonical: '/payment' },
+  openGraph: {
+    title: 'Secure Checkout | Royal Organics',
+    description: 'Secure payment gateway powered by Razorpay for your Moringa wellness order.',
+    url: 'https://royalorganics.in/payment',
+    type: 'website',
+    locale: 'en_IN',
+  },
+  twitter: { card: 'summary' },
+}
+
 'use client'
 import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useCart } from '../../lib/cartContext'

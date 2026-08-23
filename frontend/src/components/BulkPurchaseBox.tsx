@@ -65,42 +65,46 @@ export default function BulkPurchaseBox({
   }
 
   return (
-    <div className="mt-6 rounded-lg border border-royal-sand p-3 sm:p-4 bg-white">
+    <div className="mt-6 rounded-xl border border-royal-sand p-4 sm:p-5 bg-white shadow-sm">
       <div className="font-heading text-lg sm:text-xl">Quantity</div>
       <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-2 sm:gap-3" aria-label="Quantity selector">
-        <button className="btn-outline px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base" onClick={() => changeQty(-1)} aria-label="Decrease 1">-1</button>
-        <button className="btn-outline px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base" onClick={() => changeQty(+1)} aria-label="Increase 1">+1</button>
-        <button className="btn-outline px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base" onClick={() => changeQty(+5)} aria-label="Increase 5">+5</button>
+        <button className="btn-outline px-3 sm:px-4 py-2.5 min-w-[48px] min-h-[48px] text-sm sm:text-base font-semibold rounded-lg" onClick={() => changeQty(-1)} aria-label="Decrease 1">-1</button>
+        <button className="btn-outline px-3 sm:px-4 py-2.5 min-w-[48px] min-h-[48px] text-sm sm:text-base font-semibold rounded-lg" onClick={() => changeQty(+1)} aria-label="Increase 1">+1</button>
+        <button className="btn-outline px-3 sm:px-4 py-2.5 min-w-[48px] min-h-[48px] text-sm sm:text-base font-semibold rounded-lg" onClick={() => changeQty(+5)} aria-label="Increase 5">+5</button>
         <input
           type="number"
           min={0}
           value={qty}
           onChange={onInput}
-          className="w-16 sm:w-20 border border-royal-sand rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-center text-sm sm:text-base"
+          className="w-20 sm:w-24 border border-royal-sand rounded-lg px-3 sm:px-4 py-2.5 text-center text-base font-semibold min-h-[48px]"
           aria-describedby="bulk-help"
         />
       </div>
       <p id="bulk-help" className="mt-2 text-xs sm:text-sm text-royal-muted">Adjust quantity as needed.</p>
-      <div className="mt-3 sm:mt-4">
-        <div className="text-base sm:text-lg">
-          Total: <span className="font-heading">{formatINR(total)}</span> <span className="text-royal-muted text-xs sm:text-sm">({formatINR(unitPrice)} per unit)</span>
+      <div className="mt-4 sm:mt-5 p-3 sm:p-4 rounded-lg bg-emerald-50/70 border border-emerald-100">
+        <div className="text-base sm:text-lg flex flex-wrap items-baseline gap-2">
+          <span className="text-royal-green/80 font-medium">Total:</span>
+          <span className="font-heading text-xl sm:text-2xl text-emerald-800">{formatINR(total)}</span>
+        </div>
+        <div className="text-royal-muted text-xs sm:text-sm mt-1">
+          {formatINR(unitPrice)} per unit
         </div>
       </div>
       {product && !product.inStock ? (
         <button
-          className="mt-3 sm:mt-4 px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-300 text-gray-500 cursor-not-allowed rounded-md w-full sm:w-auto text-sm sm:text-base"
+          className="mt-4 sm:mt-5 px-4 sm:px-6 py-3 bg-gray-300 text-gray-500 cursor-not-allowed rounded-xl w-full text-sm sm:text-base min-h-[52px] font-semibold"
           disabled
         >
           Out of Stock
         </button>
       ) : (
         <button
-          className={`btn-primary mt-3 sm:mt-4 px-4 sm:px-6 py-2.5 sm:py-3 w-full sm:w-auto ${!isValid || processing ? 'opacity-60 cursor-not-allowed' : ''} text-sm sm:text-base`}
+          className={`btn-primary mt-4 sm:mt-5 px-4 sm:px-6 py-3 w-full ${!isValid || processing ? 'opacity-60 cursor-not-allowed' : ''} text-sm sm:text-base min-h-[52px] font-semibold rounded-xl shadow-lg`}
           onClick={handleAddToCart}
           aria-disabled={!isValid || processing}
           disabled={!isValid || processing}
         >
-          {processing ? 'Adding...' : 'Add to Cart'}
+          {processing ? 'Adding to cart…' : 'Add to Cart'}
         </button>
       )}
     </div>

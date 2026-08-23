@@ -15,14 +15,30 @@ html, body {
   scroll-behavior: smooth;
   background: var(--bg);
   color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
 }
 
 .container {
-  @apply max-w-7xl mx-auto px-5 md:px-8;
+  @apply max-w-7xl mx-auto px-4 sm:px-5 md:px-8;
+  width: 100%;
 }
 
 .btn {
   @apply inline-flex items-center justify-center rounded-md transition-colors;
+  min-height: 44px;
+  touch-action: manipulation;
 }
 
 .btn-primary {
@@ -34,15 +50,60 @@ html, body {
 }
 
 .section {
-  @apply py-12 md:py-20;
+  @apply py-10 sm:py-12 md:py-20;
 }
 
 .section-title {
-  @apply font-heading text-3xl md:text-4xl tracking-tight;
+  @apply font-heading text-2xl sm:text-3xl md:text-4xl tracking-tight;
+  line-height: 1.2;
 }
 
 .section-subtitle {
-  @apply text-royal-green/70 mt-2;
+  @apply text-royal-green/70 mt-2 text-sm sm:text-base md:text-lg;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+p {
+  line-height: 1.6;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+input, textarea, select, button {
+  font: inherit;
+  max-width: 100%;
+}
+
+table {
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.prose {
+  max-width: 100%;
+}
+
+.prose p {
+  @apply text-sm sm:text-base leading-relaxed;
+}
+
+.prose h2 {
+  @apply text-xl sm:text-2xl font-heading mt-6 sm:mt-8 mb-3 sm:mb-4;
+}
+
+.prose h3 {
+  @apply text-lg sm:text-xl font-heading mt-4 sm:mt-6 mb-2 sm:mb-3;
+}
+
+.prose ul, .prose ol {
+  @apply pl-5 sm:pl-6 my-3 sm:my-4 space-y-1.5 sm:space-y-2 text-sm sm:text-base;
 }
 
 @keyframes marquee {
@@ -71,5 +132,41 @@ html, body {
   }
   .marquee-track-ltr {
     animation-duration: 100s;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+@media (max-width: 639px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .marquee-track,
+  .marquee-track-ltr {
+    animation-duration: 60s;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .btn {
+    min-height: 48px;
+  }
+
+  input[type="number"],
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  textarea,
+  select {
+    font-size: 16px;
   }
 }

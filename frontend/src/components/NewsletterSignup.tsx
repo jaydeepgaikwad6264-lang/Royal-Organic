@@ -24,11 +24,11 @@ export default function NewsletterSignup() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 max-w-xl" aria-label="Newsletter signup">
+    <form onSubmit={handleSubmit} className="mt-6 max-w-xl w-full" aria-label="Newsletter signup">
       <label htmlFor="newsletter-email" className="sr-only">
         Email address
       </label>
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 w-full">
         <input
           id="newsletter-email"
           type="email"
@@ -36,11 +36,11 @@ export default function NewsletterSignup() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
-          className="flex-1 border border-royal-sand rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-royal-green/40"
+          className="flex-1 w-full sm:w-auto border border-royal-sand rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-royal-green/40 text-base min-h-[52px]"
           aria-invalid={status === 'error'}
           aria-describedby="newsletter-help"
         />
-        <button type="submit" className="btn-primary px-6 py-3">
+        <button type="submit" className="btn-primary px-6 py-3 w-full sm:w-auto min-h-[52px] flex items-center justify-center">
           Join
         </button>
       </div>

@@ -1,11 +1,27 @@
 'use client'
 import { useState } from 'react'
+import type { Metadata } from 'next'
 import { useCart } from '../../lib/cartContext'
 import { products } from '../../data/products'
 import { formatINR } from '../../lib/format'
 import Link from 'next/link'
 import { useClientOnly } from '../../lib/useClientOnly'
 import { FaShoppingCart, FaArrowRight } from 'react-icons/fa'
+
+export const metadata: Metadata = {
+  title: 'Your Cart',
+  description: 'Review your Royal Organics shopping cart. Review selected Moringa wellness products, quantities and savings before checkout.',
+  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
+  alternates: { canonical: '/cart' },
+  openGraph: {
+    title: 'Your Cart | Royal Organics',
+    description: 'Review your Royal Organics shopping cart before secure checkout.',
+    url: 'https://royalorganics.in/cart',
+    type: 'website',
+    locale: 'en_IN',
+  },
+  twitter: { card: 'summary' },
+}
 
 export default function CartPage() {
   const { cart, updateQuantity, removeFromCart, clearCart, totalItems, totalPrice, loading: cartLoading } = useCart()

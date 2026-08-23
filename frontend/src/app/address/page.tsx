@@ -1,10 +1,26 @@
 'use client'
 import { useState, useEffect } from 'react'
+import type { Metadata } from 'next'
 import { api, Address } from '../../lib/api'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useClientOnly } from '../../lib/useClientOnly'
 import { useCart } from '../../lib/cartContext'
+
+export const metadata: Metadata = {
+  title: 'Manage Delivery Addresses',
+  description: 'Add, edit or remove your delivery addresses for Royal Organics orders. Save multiple shipping locations across India for faster checkout.',
+  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
+  alternates: { canonical: '/address' },
+  openGraph: {
+    title: 'Delivery Addresses | Royal Organics',
+    description: 'Manage your saved delivery addresses for quick and easy checkout.',
+    url: 'https://royalorganics.in/address',
+    type: 'website',
+    locale: 'en_IN',
+  },
+  twitter: { card: 'summary' },
+}
 
 export default function AddressPage() {
   const [addresses, setAddresses] = useState<Address[]>([])

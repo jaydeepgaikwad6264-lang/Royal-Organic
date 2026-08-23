@@ -30,9 +30,9 @@ export default function TrustValueBanner() {
   const reduce = useReducedMotion()
   return (
     <section className="bg-royal-beige">
-      <div className="container py-6">
-        <div className="rounded-xl border border-royal-sand bg-white p-4 md:p-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="container py-4 sm:py-6 px-0 sm:px-0">
+        <div className="rounded-xl border border-royal-sand bg-white p-3 sm:p-4 md:p-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
             {items.map((it, i) => (
               <motion.div
                 key={it.label}
@@ -40,10 +40,10 @@ export default function TrustValueBanner() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: i * 0.05 }}
-                className="flex items-center gap-3 rounded-lg p-3 hover:shadow-soft"
+                className="flex items-center gap-2 sm:gap-3 rounded-lg p-2 sm:p-3 hover:shadow-soft"
               >
-                <Icon name={it.icon} className="w-6 h-6 text-royal-gold" />
-                <div className="text-royal-text text-sm md:text-base">{it.label}</div>
+                <Icon name={it.icon} className="w-5 h-5 sm:w-6 sm:h-6 text-royal-gold flex-shrink-0" />
+                <div className="text-royal-text text-xs sm:text-sm md:text-base leading-snug">{it.label}</div>
               </motion.div>
             ))}
           </div>

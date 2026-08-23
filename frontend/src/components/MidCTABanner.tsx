@@ -12,7 +12,7 @@ export default function MidCTABanner() {
   const y = useTransform(scrollYProgress, [0, 1], [reduce ? 0 : -10, reduce ? 0 : 10])
   return (
     <section className="bg-royal-beige">
-      <div className="container py-12">
+      <div className="container py-6 sm:py-10 md:py-12">
         <motion.div
           ref={ref}
           className="relative rounded-xl overflow-hidden border border-royal-sand"
@@ -32,11 +32,11 @@ export default function MidCTABanner() {
               loading="lazy"
             />
           </motion.div>
-          <div className="relative p-8 md:p-12">
-            <h3 className="font-heading text-2xl md:text-3xl">Feel the Royal Difference in Every Serving</h3>
-            <p className="mt-2 text-royal-green/80">Premium organic moringa, crafted for clean daily vitality.</p>
-            <motion.div className="mt-6" whileHover={{ scale: 1.03 }}>
-              <Link href="/shop" className="btn-primary px-6 py-3">Shop Royal Organics</Link>
+          <div className="relative p-5 sm:p-8 md:p-10 md:p-12 text-center sm:text-left">
+            <h3 className="font-heading text-xl sm:text-2xl md:text-3xl leading-tight">Feel the Royal Difference in Every Serving</h3>
+            <p className="mt-2 text-royal-green/80 text-sm sm:text-base">Premium organic moringa, crafted for clean daily vitality.</p>
+            <motion.div className="mt-5 sm:mt-6 w-full sm:w-auto" whileHover={{ scale: 1.03 }}>
+              <Link href="/shop" className="btn-primary px-5 sm:px-6 py-3 w-full sm:w-auto inline-flex justify-center min-h-[52px]">Shop Royal Organics</Link>
             </motion.div>
           </div>
         </motion.div>

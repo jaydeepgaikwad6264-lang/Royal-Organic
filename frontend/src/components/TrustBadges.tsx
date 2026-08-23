@@ -54,7 +54,7 @@ const badges: Badge[] = [
 
 export default function TrustBadges() {
   return (
-    <div className="mt-6 flex flex-wrap gap-3" aria-label="Trust badges">
+    <div className="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-3" aria-label="Trust badges">
       {badges.map((b, i) => (
         <motion.span
           key={b.label}
@@ -62,10 +62,10 @@ export default function TrustBadges() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.4, delay: i * 0.03 }}
-          className="inline-flex items-center gap-2 border border-royal-gold rounded-full px-3 py-1 text-sm bg-royal-beige"
+          className="inline-flex items-center gap-1.5 sm:gap-2 border border-royal-gold rounded-full px-2.5 sm:px-3 py-1.5 sm:py-1 text-[11px] sm:text-sm bg-royal-beige"
         >
-          <b.Icon className="w-4 h-4 text-royal-gold" />
-          <span className="text-royal-text">{b.label}</span>
+          <b.Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-royal-gold flex-shrink-0" />
+          <span className="text-royal-text leading-tight">{b.label}</span>
         </motion.span>
       ))}
     </div>

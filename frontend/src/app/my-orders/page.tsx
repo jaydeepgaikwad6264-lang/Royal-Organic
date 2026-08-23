@@ -1,3 +1,19 @@
+import type { Metadata } from 'next'
+export const metadata: Metadata = {
+  title: 'My Orders — Track & Manage Purchases',
+  description: 'Track all your Royal Organics orders in one place. View payment status, shipment updates, AWB numbers and live courier tracking for every purchase.',
+  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
+  alternates: { canonical: '/my-orders' },
+  openGraph: {
+    title: 'My Orders | Royal Organics',
+    description: 'Track, manage and review your Royal Organics order history.',
+    url: 'https://royalorganics.in/my-orders',
+    type: 'website',
+    locale: 'en_IN',
+  },
+  twitter: { card: 'summary' },
+}
+
 'use client'
 import { useEffect, useState, useCallback } from 'react'
 import { api, Order, OrderItem, Address, TrackingResponse } from '../../lib/api'

@@ -24,10 +24,10 @@ export default function ProductShowcase({ title, description, image, images = []
 
   return (
     <section className="bg-royal-beige">
-      <div className="container py-10 md:py-12">
-        <div className={`grid md:grid-cols-2 gap-6 md:gap-10 items-start ${align === 'right' ? 'md:[&>*:first-child]:order-2' : ''}`}>
-          <motion.div {...imgMotion} transition={{ duration: 0.6 }} viewport={{ once: true }} className="space-y-3 md:space-y-4">
-            <div className="relative aspect-[4/3] sm:aspect-square md:aspect-auto md:h-[500px] w-full rounded-xl overflow-hidden border border-royal-sand bg-gradient-to-br from-white via-royal-beige/60 to-stone-50 shadow-soft">
+      <div className="container py-6 sm:py-8 md:py-10 md:py-12">
+        <div className={`grid md:grid-cols-2 gap-5 sm:gap-6 md:gap-10 items-start ${align === 'right' ? 'md:[&>*:first-child]:order-2' : ''}`}>
+          <motion.div {...imgMotion} transition={{ duration: 0.6 }} viewport={{ once: true }} className="space-y-2 sm:space-y-3 md:space-y-4 order-1 md:order-none">
+            <div className="relative aspect-[4/3] sm:aspect-square md:aspect-auto md:h-[400px] lg:h-[500px] w-full rounded-xl overflow-hidden border border-royal-sand bg-gradient-to-br from-white via-royal-beige/60 to-stone-50 shadow-soft">
               <Image
                 src={selectedImage}
                 alt={title}
@@ -38,7 +38,7 @@ export default function ProductShowcase({ title, description, image, images = []
               />
             </div>
             {allImages.length > 1 && (
-              <div className="flex gap-2 sm:gap-3 overflow-x-auto overflow-y-hidden pb-2 pt-1 snap-x snap-mandatory touch-pan-x scrollbar-hide -mx-1 px-1">
+              <div className="flex gap-1.5 sm:gap-2 sm:gap-3 overflow-x-auto overflow-y-hidden pb-2 pt-1 snap-x snap-mandatory touch-pan-x scrollbar-hide -mx-1 px-1">
                 {allImages.map((img, index) => (
                   <button
                     key={index}
@@ -58,15 +58,15 @@ export default function ProductShowcase({ title, description, image, images = []
               </div>
             )}
           </motion.div>
-          <motion.div {...textMotion} transition={{ duration: 0.6 }} viewport={{ once: true }} className="pt-2 md:pt-4">
-            <h3 className="font-heading text-2xl md:text-3xl leading-tight">{title}</h3>
-            <p className="mt-3 text-royal-green/80">{description}</p>
-            <div className="mt-6 flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+          <motion.div {...textMotion} transition={{ duration: 0.6 }} viewport={{ once: true }} className="pt-0 sm:pt-2 md:pt-4 order-2 md:order-none text-center md:text-left">
+            <h3 className="font-heading text-2xl sm:text-3xl md:text-3xl leading-tight">{title}</h3>
+            <p className="mt-2 sm:mt-3 text-royal-green/80 text-sm sm:text-base leading-relaxed">{description}</p>
+            <div className="mt-5 sm:mt-6 flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto justify-center md:justify-start">
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
-                <Link href={viewHref} className="btn-outline px-6 py-3 w-full sm:w-auto inline-flex justify-center min-h-[52px]">View Product</Link>
+                <Link href={viewHref} className="btn-outline px-5 sm:px-6 py-3 w-full sm:w-auto inline-flex justify-center min-h-[52px]">View Product</Link>
               </motion.div>
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
-                <Link href={buyHref} className="btn-primary px-6 py-3 w-full sm:w-auto inline-flex justify-center min-h-[52px]">Buy Now</Link>
+                <Link href={buyHref} className="btn-primary px-5 sm:px-6 py-3 w-full sm:w-auto inline-flex justify-center min-h-[52px]">Buy Now</Link>
               </motion.div>
             </div>
           </motion.div>

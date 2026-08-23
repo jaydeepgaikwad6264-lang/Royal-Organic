@@ -40,6 +40,10 @@ export default function ProductCard({ product }: { product: Product }) {
     setProcessing(true)
     try {
       await addToCart(product.id, 1, product.price)
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        window.dispatchEvent(new CustomEvent('royal:openCart'))
+      }
     } catch (err: any) {
       alert(`Failed to add to cart: ${err.message || 'Unknown error'}`)
     } finally {
@@ -51,6 +55,9 @@ export default function ProductCard({ product }: { product: Product }) {
     setProcessing(true)
     try {
       await updateQuantity(productId, newQuantity)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('royal:openCart'))
+      }
     } catch (err: any) {
       alert(`Failed to update quantity: ${err.message || 'Unknown error'}`)
     } finally {
