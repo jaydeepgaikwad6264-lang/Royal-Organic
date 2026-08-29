@@ -415,7 +415,7 @@ export default function Navbar() {
                     </div>
 
                     <Link
-                      href="/manage-address"
+                      href="/address"
                       onClick={() => setShowMobileMenu(false)}
                       className="flex items-center gap-3 px-4 py-3 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors"
                     >
