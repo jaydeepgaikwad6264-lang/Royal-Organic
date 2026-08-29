@@ -1,7 +1,7 @@
 import Section from '../../components/Section'
 import { Metadata } from 'next'
 
-const SITE_URL = 'https://royalorganics.in'
+const SITE_URL = 'https://theroyalorganics.com'
 
 export const metadata: Metadata = {
   title: 'About Us — Our Story & Mission | Royal Organics',

@@ -1,7 +1,7 @@
 import Section from '../../components/Section'
 import { Metadata } from 'next'
 
-const SITE_URL = 'https://royalorganics.in'
+const SITE_URL = 'https://theroyalorganics.com'
 
 const faqs = [
   { q: 'How do I use moringa powder?', a: 'Mix 1 tsp of Royal Organics Moringa Powder into smoothies, water, juices, or food daily.' },

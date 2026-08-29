@@ -5,7 +5,7 @@ import { products } from '../../data/products'
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-const SITE_URL = 'https://royalorganics.in'
+const SITE_URL = 'https://theroyalorganics.com'
 
 export const metadata: Metadata = {
   title: 'Shop — Moringa Capsules & Powder | Royal Organics',

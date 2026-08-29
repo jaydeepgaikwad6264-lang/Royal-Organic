@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Page Not Found | Royal Organics',
     description: 'The page you requested could not be found. Explore our organic Moringa products instead.',
-    url: 'https://royalorganics.in/404',
+    url: 'https://theroyalorganics.com/404',
     type: 'website',
     locale: 'en_IN',
   },

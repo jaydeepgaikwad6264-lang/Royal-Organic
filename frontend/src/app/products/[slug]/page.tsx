@@ -7,7 +7,7 @@ import { formatINR } from '../../../lib/format'
 import Script from 'next/script'
 import { notFound } from 'next/navigation'
 
-const SITE_URL = 'https://royalorganics.in'
+const SITE_URL = 'https://theroyalorganics.com'
 
 export async function generateStaticParams() {
   return products.map((p) => ({ slug: p.slug }))

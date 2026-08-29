@@ -27,7 +27,7 @@ import certIec from '../lib/certificates/certificateOfIEC_page-0001.jpg'
 import certLicense from '../lib/certificates/license_page-0001.jpg'
 import type { Metadata } from 'next'
 
-const SITE_URL = 'https://royalorganics.in'
+const SITE_URL = 'https://theroyalorganics.com'
 
 export const metadata: Metadata = {
   title: 'Royal Organics — Premium Moringa Capsules & Powder | 100% Organic India',

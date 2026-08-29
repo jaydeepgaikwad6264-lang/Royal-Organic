@@ -6,7 +6,7 @@ import certUsfda from '../../lib/certificates/HERBALFARM LIFECARE_USFDA_page-000
 import certIec from '../../lib/certificates/certificateOfIEC_page-0001.jpg'
 import certLicense from '../../lib/certificates/license_page-0001.jpg'
 
-const SITE_URL = 'https://royalorganics.in'
+const SITE_URL = 'https://theroyalorganics.com'
 
 export const metadata: Metadata = {
   title: 'Science & Quality — Lab Testing & Certifications | Royal Organics',
