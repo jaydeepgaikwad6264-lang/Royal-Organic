@@ -2,26 +2,23 @@
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../lib/cartContext'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { useClientOnly } from '../lib/useClientOnly'
 import { products } from '../data/products'
 import { formatINR } from '../lib/format'
-import { FaShoppingCart, FaTimes, FaUserCircle } from 'react-icons/fa'
+import { FaShoppingCart, FaTimes, FaUserCircle, FaChevronDown, FaMapMarkerAlt, FaSignOutAlt, FaBox } from 'react-icons/fa'
 import Image from 'next/image'
 import logoImg from '../lib/logo.jpeg'
 
-// Helper function to extract and format a readable name from email
 function extractNameFromEmail(email: string): string {
   if (!email || typeof email !== 'string') return 'User'
   const username = email.split('@')[0]
   if (!username) return 'User'
 
-  // Replace dots, underscores, dashes, and numbers with spaces
   const cleaned = username.replace(/[._\-0-9]+/g, ' ').trim()
   if (!cleaned) return username
 
-  // Capitalize each word (e.g. "john doe" -> "John Doe")
   return cleaned
     .split(' ')
     .filter(Boolean)
@@ -35,7 +32,10 @@ export default function Navbar() {
   const [displayName, setDisplayName] = useState<string>('')
   const [showMiniCart, setShowMiniCart] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
   const [processing, setProcessing] = useState<string | null>(null)
+  
+  const userDropdownRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
   const isClient = useClientOnly()
 
@@ -47,9 +47,7 @@ export default function Navbar() {
       setIsLoggedIn(valid)
 
       if (valid) {
-        // Retrieve email from any standard localStorage key
         let email = localStorage.getItem('email') || localStorage.getItem('userEmail') || ''
-
         if (!email) {
           const storedUser = localStorage.getItem('user')
           if (storedUser) {
@@ -57,12 +55,10 @@ export default function Navbar() {
               const parsed = JSON.parse(storedUser)
               email = parsed.email || ''
             } catch {
-              // fallback if stored as a plain string
               if (storedUser.includes('@')) email = storedUser
             }
           }
         }
-
         setDisplayName(email ? extractNameFromEmail(email) : 'User')
       } else {
         setDisplayName('')
@@ -70,20 +66,38 @@ export default function Navbar() {
     }
     
     checkAuth()
-    
     window.addEventListener('storage', checkAuth)
     return () => window.removeEventListener('storage', checkAuth)
   }, [pathname, isClient])
 
+  // Close dropdown on outside click
   useEffect(() => {
-    if (!isClient) return
-    const onOpenCart = () => {
-      setShowMiniCart(true)
-      setShowMobileMenu(false)
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false)
+      }
     }
-    window.addEventListener('royal:openCart', onOpenCart)
-    return () => window.removeEventListener('royal:openCart', onOpenCart)
-  }, [isClient])
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Close menus on route change
+  useEffect(() => {
+    setShowUserDropdown(false)
+    setShowMobileMenu(false)
+    setShowMiniCart(false)
+  }, [pathname])
+
+  const handleLogout = () => {
+    if (!isClient) return
+    localStorage.removeItem('token')
+    localStorage.removeItem('email')
+    localStorage.removeItem('user')
+    setIsLoggedIn(false)
+    setShowUserDropdown(false)
+    setShowMobileMenu(false)
+    fetchCart()
+  }
 
   if (!isClient) return null
 
@@ -126,9 +140,10 @@ export default function Navbar() {
         </div>
         
         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-shrink-0 justify-end">
+          {/* Cart Icon */}
           <div className="relative sm:static">
             <button
-              onClick={() => { setShowMiniCart(!showMiniCart); setShowMobileMenu(false) }}
+              onClick={() => { setShowMiniCart(!showMiniCart); setShowMobileMenu(false); setShowUserDropdown(false); }}
               className="bg-yellow-400 hover:bg-yellow-300 text-emerald-900 px-2 sm:px-3 md:px-5 py-1.5 sm:py-2 rounded-full font-semibold flex items-center gap-1 sm:gap-2 shadow-md hover:shadow-xl transition-all text-xs sm:text-sm md:text-base max-w-[calc(100vw-7rem)] sm:max-w-none"
               aria-label={totalItems > 0 ? `Cart with ${totalItems} items` : 'Cart'}
             >
@@ -141,6 +156,7 @@ export default function Navbar() {
               )}
             </button>
 
+            {/* Mini Cart Modal */}
             <AnimatePresence>
               {showMiniCart && (
                 <>
@@ -283,18 +299,69 @@ export default function Navbar() {
             </AnimatePresence>
           </div>
           
-          {/* Desktop Auth Section */}
+          {/* Desktop User Section */}
           <div className="hidden md:flex items-center gap-2 md:gap-3">
             {isLoggedIn ? (
-              <>
-                <Link href="/my-orders" className="bg-emerald-700 hover:bg-emerald-600 text-white px-3 md:px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base whitespace-nowrap">
-                  My Orders
-                </Link>
-                <div className="flex items-center gap-2 bg-emerald-700/60 border border-emerald-600/40 text-yellow-300 px-3 md:px-4 py-2 rounded-lg font-semibold text-sm md:text-base max-w-[160px] lg:max-w-[200px]">
+              <div className="relative" ref={userDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowUserDropdown(!showUserDropdown)}
+                  className="flex items-center gap-2 bg-emerald-700/80 hover:bg-emerald-700 border border-emerald-600/50 text-yellow-300 px-3.5 py-2 rounded-lg font-semibold text-sm md:text-base transition-all cursor-pointer shadow-sm"
+                  aria-expanded={showUserDropdown}
+                  aria-haspopup="true"
+                >
                   <FaUserCircle className="w-5 h-5 text-yellow-300 flex-shrink-0" />
-                  <span className="truncate">{displayName}</span>
-                </div>
-              </>
+                  <span className="max-w-[140px] truncate">{displayName}</span>
+                  <FaChevronDown className={`w-3 h-3 text-yellow-300 transition-transform duration-200 ${showUserDropdown ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Submenu Dropdown */}
+                <AnimatePresence>
+                  {showUserDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-50 overflow-hidden"
+                    >
+                      <div className="px-4 py-2 border-b border-gray-100 bg-gray-50/70">
+                        <p className="text-xs text-gray-400 font-medium">Signed in as</p>
+                        <p className="text-sm font-semibold text-gray-800 truncate">{displayName}</p>
+                      </div>
+
+                      <Link
+                        href="/my-orders"
+                        onClick={() => setShowUserDropdown(false)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                      >
+                        <FaBox className="w-4 h-4 text-emerald-600" />
+                        My Orders
+                      </Link>
+
+                      <Link
+                        href="/manage-address"
+                        onClick={() => setShowUserDropdown(false)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                      >
+                        <FaMapMarkerAlt className="w-4 h-4 text-emerald-600" />
+                        Manage Addresses
+                      </Link>
+
+                      <div className="border-t border-gray-100 my-1"></div>
+
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors text-left"
+                      >
+                        <FaSignOutAlt className="w-4 h-4 text-red-500" />
+                        Logout
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             ) : (
               <Link href="/login" className="bg-yellow-400 hover:bg-yellow-300 text-emerald-900 px-3 md:px-5 py-2 rounded-lg font-bold transition-colors text-sm md:text-base whitespace-nowrap">
                 Login / Sign Up
@@ -302,6 +369,7 @@ export default function Navbar() {
             )}
           </div>
 
+          {/* Mobile Hamburger Button */}
           <button
             onClick={() => { setShowMobileMenu(!showMobileMenu); setShowMiniCart(false) }}
             className="md:hidden text-white p-2 rounded-lg hover:bg-emerald-700 transition-colors"
@@ -341,17 +409,37 @@ export default function Navbar() {
               <div className="pt-3 mt-3 border-t border-emerald-700 space-y-2">
                 {isLoggedIn ? (
                   <>
-                    <div className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-800/80 text-yellow-300 rounded-lg font-semibold text-center">
+                    <div className="flex items-center gap-2 px-4 py-3 bg-emerald-800/80 text-yellow-300 rounded-lg font-semibold">
                       <FaUserCircle className="w-5 h-5" />
                       <span className="truncate">{displayName}</span>
                     </div>
+
+                    <Link
+                      href="/manage-address"
+                      onClick={() => setShowMobileMenu(false)}
+                      className="flex items-center gap-3 px-4 py-3 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors"
+                    >
+                      <FaMapMarkerAlt className="w-4 h-4 text-yellow-300" />
+                      Manage Addresses
+                    </Link>
+
                     <Link
                       href="/my-orders"
                       onClick={() => setShowMobileMenu(false)}
-                      className="block px-4 py-3 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-medium text-center transition-colors"
+                      className="flex items-center gap-3 px-4 py-3 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors"
                     >
+                      <FaBox className="w-4 h-4 text-yellow-300" />
                       My Orders
                     </Link>
+
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-colors"
+                    >
+                      <FaSignOutAlt className="w-4 h-4" />
+                      Logout
+                    </button>
                   </>
                 ) : (
                   <Link
