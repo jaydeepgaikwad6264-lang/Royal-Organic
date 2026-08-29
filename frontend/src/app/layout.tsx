@@ -6,7 +6,7 @@ import { CartProvider } from '../lib/cartContext'
 import falconIcon from '../lib/falcon icon.jpeg'
 import Script from 'next/script'
 
-const SITE_URL = 'https://royalorganics.in'
+const SITE_URL = 'https://theroyalorganics.com'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
