@@ -340,7 +340,7 @@ export default function Navbar() {
                       </Link>
 
                       <Link
-                        href="/manage-address"
+                        href="/address"
                         onClick={() => setShowUserDropdown(false)}
                         className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
                       >
