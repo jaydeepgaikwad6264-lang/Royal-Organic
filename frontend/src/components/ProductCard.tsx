@@ -1,4 +1,5 @@
 'use client'
+
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -10,14 +11,16 @@ import { useCart } from '../lib/cartContext'
 import { useClientOnly } from '../lib/useClientOnly'
 
 export default function ProductCard({ product }: { product: Product }) {
-  const { addToCart, cart, updateQuantity, loading: cartLoading, error: cartError } = useCart()
+  const { addToCart, cart, updateQuantity, error: cartError } = useCart()
   const existingItem = cart.find(item => item.productId === product.id)
   const [processing, setProcessing] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const isClient = useClientOnly()
   const router = useRouter()
 
-  const discountPercent = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+  const discountPercent = Math.round(
+    ((product.originalPrice - product.price) / product.originalPrice) * 100
+  )
 
   useEffect(() => {
     if (isClient) {
@@ -28,9 +31,9 @@ export default function ProductCard({ product }: { product: Product }) {
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    
+
     if (!product.inStock) return
-    
+
     if (!isLoggedIn) {
       alert('Please log in to add items to your cart!')
       router.push('/login')
@@ -67,107 +70,145 @@ export default function ProductCard({ product }: { product: Product }) {
 
   return (
     <motion.article
-      whileHover={product.inStock ? { y: -8, scale: 1.02 } : {}}
       whileTap={product.inStock ? { scale: 0.98 } : {}}
-      className={`rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-lg transition-all relative ${product.inStock ? 'hover:shadow-2xl' : 'opacity-75'}`}
+      className={`rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-md sm:shadow-lg transition-all relative flex flex-col justify-between ${
+        product.inStock ? 'hover:shadow-xl' : 'opacity-75'
+      }`}
     >
       <Link href={`/products/${product.slug}`} aria-label={`View ${product.name}`} className="block">
-        <div className="relative h-48 sm:h-64 overflow-hidden">
+        {/* Product Image */}
+        <div className="relative aspect-square sm:aspect-[4/3] w-full overflow-hidden bg-gray-50">
           <Image
             src={product.image}
             alt={product.name}
             fill
-            className={`object-cover transition-transform ${product.inStock ? 'hover:scale-110' : ''}`}
-            sizes="(max-width: 768px) 100vw, 33vw"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-300 hover:scale-105"
+            priority={false}
           />
+          
           {!product.inStock && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
-              <span className="bg-red-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-lg sm:text-xl font-bold shadow-lg">
-                OUT OF STOCK
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10 p-2">
+              <span className="bg-red-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-bold shadow-md uppercase tracking-wider text-center">
+                Out of Stock
               </span>
             </div>
           )}
+
           {product.category === 'powder' && (
-            <span className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-green-500 text-white px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold">
+            <span className="absolute top-2.5 left-2.5 bg-green-600 text-white px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold shadow-sm">
               100% Pure
             </span>
           )}
           {product.category === 'capsules' && (
-            <span className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-blue-500 text-white px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold">
+            <span className="absolute top-2.5 left-2.5 bg-blue-600 text-white px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold shadow-sm">
               Easy to Use
             </span>
           )}
         </div>
-        <div className="p-4 sm:p-6">
-          <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
-            {[1,2,3,4,5].map(star => (
-              <span key={star} className="text-yellow-400 text-base sm:text-lg">★</span>
-            ))}
-            <span className="text-xs sm:text-sm text-gray-500">(128)</span>
+
+        {/* Product Details */}
+        <div className="p-3.5 sm:p-5">
+          <div className="flex items-center gap-1 mb-1.5">
+            <div className="flex text-yellow-400 text-sm">
+              {[...Array(5)].map((_, i) => (
+                <span key={i}>★</span>
+              ))}
+            </div>
+            <span className="text-[11px] sm:text-xs text-gray-500 font-medium">(128)</span>
           </div>
-          <div className="font-heading text-lg sm:text-xl text-gray-800 mb-1 sm:mb-2">{product.name}</div>
-          <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-2">{product.description}</p>
-          
-          <div className="flex items-baseline gap-2 sm:gap-3 mb-2 sm:mb-4 flex-wrap">
-            <div className="text-2xl sm:text-3xl font-bold text-emerald-700">{formatINR(product.price)}</div>
-            <div className="text-gray-400 line-through text-xs sm:text-sm">{formatINR(product.originalPrice)}</div>
-            <span className="text-green-600 text-xs sm:text-sm font-bold">{discountPercent}% OFF</span>
+
+          <h3 className="font-semibold text-sm sm:text-base text-gray-900 mb-1 line-clamp-1">
+            {product.name}
+          </h3>
+
+          <p className="text-gray-600 text-xs line-clamp-2 mb-3">
+            {product.description}
+          </p>
+
+          <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap mb-2">
+            <span className="text-lg sm:text-xl font-bold text-emerald-700">
+              {formatINR(product.price)}
+            </span>
+            {product.originalPrice > product.price && (
+              <>
+                <span className="text-gray-400 line-through text-xs">
+                  {formatINR(product.originalPrice)}
+                </span>
+                <span className="text-green-600 text-xs font-semibold">
+                  {discountPercent}% OFF
+                </span>
+              </>
+            )}
           </div>
-          
-          <p className="text-xs sm:text-sm text-gray-500 mb-2 sm:mb-4">
-            <span className="text-gray-400">per unit</span> • <span className="text-emerald-600 font-semibold">Free delivery</span> on orders over {formatINR(499)}
+
+          <p className="text-[11px] sm:text-xs text-gray-500">
+            <span className="text-gray-400">per unit</span> •{' '}
+            <span className="text-emerald-600 font-medium">Free delivery</span> over {formatINR(499)}
           </p>
         </div>
       </Link>
-      
-      <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+
+      {/* Action Buttons */}
+      <div className="px-3.5 sm:px-5 pb-3.5 sm:pb-5 pt-0">
         {existingItem && product.inStock ? (
-          <div className="flex items-center justify-between gap-2 sm:gap-3 flex-col sm:flex-row">
-            <div className="flex items-center gap-1 sm:gap-2 bg-gray-100 rounded-full w-full sm:w-auto justify-center">
+          <div className="flex items-center justify-between gap-2 bg-gray-50 border border-gray-100 p-1.5 rounded-xl">
+            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-0.5 shadow-sm">
               <button
-                onClick={(e) => { 
+                type="button"
+                onClick={(e) => {
                   e.preventDefault()
-                  if (existingItem.quantity > 1) {
-                    handleUpdateQuantity(product.id, existingItem.quantity - 1)
-                  }
+                  handleUpdateQuantity(product.id, existingItem.quantity - 1)
                 }}
                 disabled={processing}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white shadow text-gray-700 font-bold hover:bg-gray-50 transition-colors disabled:opacity-50"
+                aria-label="Decrease quantity"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-md text-gray-700 font-bold hover:bg-gray-100 flex items-center justify-center transition-colors disabled:opacity-50 text-sm"
               >
-                -
+                {existingItem.quantity === 1 ? '🗑' : '-'}
               </button>
-              <span className="w-10 sm:w-12 text-center font-bold text-gray-800 text-sm sm:text-base">{existingItem.quantity}</span>
+
+              <span className="w-7 sm:w-8 text-center font-semibold text-gray-900 text-xs sm:text-sm">
+                {existingItem.quantity}
+              </span>
+
               <button
-                onClick={(e) => { 
+                type="button"
+                onClick={(e) => {
                   e.preventDefault()
                   handleUpdateQuantity(product.id, existingItem.quantity + 1)
                 }}
                 disabled={processing}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                aria-label="Increase quantity"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-emerald-600 text-white font-bold hover:bg-emerald-700 flex items-center justify-center transition-colors disabled:opacity-50 text-sm"
               >
                 +
               </button>
             </div>
-            <div className="text-center sm:text-right w-full sm:w-auto">
-              <p className="text-xs sm:text-sm text-gray-500">Total</p>
-              <p className="font-bold text-gray-800 text-sm sm:text-base">{formatINR(existingItem.quantity * existingItem.pricePerUnit)}</p>
+
+            <div className="text-right pr-1">
+              <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">Total</p>
+              <p className="font-bold text-gray-900 text-xs sm:text-sm">
+                {formatINR(existingItem.quantity * existingItem.pricePerUnit)}
+              </p>
             </div>
           </div>
         ) : (
           <button
+            type="button"
             onClick={handleAddToCart}
             disabled={processing || !product.inStock}
-            className={`w-full py-2.5 sm:py-3 rounded-xl font-bold text-base sm:text-lg shadow-lg transition-all ${
+            className={`w-full py-2.5 sm:py-3 rounded-xl font-semibold text-xs sm:text-sm shadow-sm transition-all active:scale-[0.98] ${
               product.inStock
-                ? 'bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 hover:shadow-xl disabled:opacity-50'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                ? 'bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-gray-950 disabled:opacity-50'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
-            {product.inStock ? (processing ? 'Adding...' : '🛒 Add to Cart (1 unit)') : 'Out of Stock'}
+            {product.inStock ? (processing ? 'Adding...' : '🛒 Add to Cart') : 'Out of Stock'}
           </button>
         )}
+
         {cartError && (
-          <div className="mt-3 p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg text-sm">
+          <div className="mt-2 p-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-[11px] sm:text-xs">
             {cartError}
           </div>
         )}
