@@ -28,6 +28,7 @@ export default function LoginPage() {
     try {
       const res = await api.login(email)
       localStorage.setItem('token', res.token)
+      localStorage.setItem('email', email) // <-- Add this line
       setSignedIn(true)
       await fetchCart()
     } catch (err: any) {

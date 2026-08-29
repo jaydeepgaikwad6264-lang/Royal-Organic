@@ -1,10 +1,19 @@
 'use client'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import logoImage from '../lib/logo.png'
 
 export default function Hero() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    const valid = !!token && token !== 'undefined' && token !== 'null'
+    setIsLoggedIn(valid)
+  }, [])
+
   return (
     <section className="relative overflow-hidden bg-royal-beige">
       <div className="container grid md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 md:gap-16 items-center py-8 sm:py-10 sm:py-14 md:py-20">
@@ -34,11 +43,15 @@ export default function Hero() {
                 Explore Benefits
               </Link>
             </motion.div>
-            <motion.div whileHover={{ scale: 1.03 }} className="w-full sm:w-auto">
-              <Link href="/login" className="btn-outline px-4 sm:px-5 sm:px-6 py-2.5 sm:py-3 w-full sm:w-auto inline-flex justify-center min-h-[52px] text-sm sm:text-base" aria-label="Login to your account">
-                Login
-              </Link>
-            </motion.div>
+
+            {/* Rendered only when user is NOT logged in */}
+            {!isLoggedIn && (
+              <motion.div whileHover={{ scale: 1.03 }} className="w-full sm:w-auto">
+                <Link href="/login" className="btn-outline px-4 sm:px-5 sm:px-6 py-2.5 sm:py-3 w-full sm:w-auto inline-flex justify-center min-h-[52px] text-sm sm:text-base" aria-label="Login to your account">
+                  Login
+                </Link>
+              </motion.div>
+            )}
           </div>
         </motion.div>
         <motion.div

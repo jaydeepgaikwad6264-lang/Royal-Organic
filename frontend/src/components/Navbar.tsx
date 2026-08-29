@@ -7,13 +7,32 @@ import { usePathname } from 'next/navigation'
 import { useClientOnly } from '../lib/useClientOnly'
 import { products } from '../data/products'
 import { formatINR } from '../lib/format'
-import { FaShoppingCart, FaTimes } from 'react-icons/fa'
+import { FaShoppingCart, FaTimes, FaUserCircle } from 'react-icons/fa'
 import Image from 'next/image'
 import logoImg from '../lib/logo.jpeg'
+
+// Helper function to extract and format a readable name from email
+function extractNameFromEmail(email: string): string {
+  if (!email || typeof email !== 'string') return 'User'
+  const username = email.split('@')[0]
+  if (!username) return 'User'
+
+  // Replace dots, underscores, dashes, and numbers with spaces
+  const cleaned = username.replace(/[._\-0-9]+/g, ' ').trim()
+  if (!cleaned) return username
+
+  // Capitalize each word (e.g. "john doe" -> "John Doe")
+  return cleaned
+    .split(' ')
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
 
 export default function Navbar() {
   const { cart, totalItems, totalPrice, removeFromCart, updateQuantity, loading: cartLoading, fetchCart } = useCart()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [displayName, setDisplayName] = useState<string>('')
   const [showMiniCart, setShowMiniCart] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [processing, setProcessing] = useState<string | null>(null)
@@ -24,7 +43,30 @@ export default function Navbar() {
     if (!isClient) return
     const checkAuth = () => {
       const token = localStorage.getItem('token')
-      setIsLoggedIn(!!token)
+      const valid = !!token && token !== 'undefined' && token !== 'null'
+      setIsLoggedIn(valid)
+
+      if (valid) {
+        // Retrieve email from any standard localStorage key
+        let email = localStorage.getItem('email') || localStorage.getItem('userEmail') || ''
+
+        if (!email) {
+          const storedUser = localStorage.getItem('user')
+          if (storedUser) {
+            try {
+              const parsed = JSON.parse(storedUser)
+              email = parsed.email || ''
+            } catch {
+              // fallback if stored as a plain string
+              if (storedUser.includes('@')) email = storedUser
+            }
+          }
+        }
+
+        setDisplayName(email ? extractNameFromEmail(email) : 'User')
+      } else {
+        setDisplayName('')
+      }
     }
     
     checkAuth()
@@ -42,15 +84,6 @@ export default function Navbar() {
     window.addEventListener('royal:openCart', onOpenCart)
     return () => window.removeEventListener('royal:openCart', onOpenCart)
   }, [isClient])
-
-  const handleLogout = () => {
-    if (!isClient) return
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    setIsLoggedIn(false)
-    setShowMobileMenu(false)
-    fetchCart()
-  }
 
   if (!isClient) return null
 
@@ -128,141 +161,139 @@ export default function Navbar() {
                     transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
                     className="fixed sm:absolute left-0 right-0 sm:left-auto sm:right-0 bottom-0 sm:bottom-auto sm:top-full z-50 sm:mt-2 w-full sm:w-[min(26rem,calc(100vw-1.5rem))] max-h-[85dvh] sm:max-h-[70vh] bg-white sm:rounded-xl rounded-t-2xl sm:shadow-2xl shadow-[0_-8px_32px_rgba(0,0,0,0.2)] border-t sm:border border-gray-200 flex flex-col pb-[env(safe-area-inset-bottom)] sm:pb-0 overflow-hidden"
                   >
-                  <div className="sm:hidden flex justify-center pt-2.5 pb-1.5">
-                    <div className="w-10 h-1 rounded-full bg-gray-300" />
-                  </div>
-                  <div className="p-4 sm:p-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-                    <div className="flex items-center gap-2">
-                      <FaShoppingCart className="w-5 h-5 text-emerald-700" aria-hidden />
-                      <h3 className="text-lg font-bold text-gray-800">Your Cart</h3>
-                      {totalItems > 0 && (
-                        <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                          {totalItems} {totalItems === 1 ? 'item' : 'items'}
-                        </span>
-                      )}
+                    <div className="sm:hidden flex justify-center pt-2.5 pb-1.5">
+                      <div className="w-10 h-1 rounded-full bg-gray-300" />
                     </div>
-                    <button
-                      onClick={() => setShowMiniCart(false)}
-                      className="sm:hidden p-2 -mr-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                      aria-label="Close cart"
-                    >
-                      <FaTimes className="w-5 h-5" />
-                    </button>
-                  </div>
-                  
-                  <div className="flex-1 overflow-y-auto overscroll-contain">
-                    {cart.length === 0 ? (
-                      <div className="p-10 sm:p-8 text-center text-gray-500">
-                        <p className="flex justify-center mb-3"><FaShoppingCart className="w-14 h-14 sm:w-10 sm:h-10 text-gray-300" aria-hidden /></p>
-                        <p className="text-base sm:text-sm font-medium text-gray-600">Your cart is empty!</p>
-                        <p className="text-sm text-gray-400 mt-1">Add some organic goodness to get started.</p>
+                    <div className="p-4 sm:p-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                      <div className="flex items-center gap-2">
+                        <FaShoppingCart className="w-5 h-5 text-emerald-700" aria-hidden />
+                        <h3 className="text-lg font-bold text-gray-800">Your Cart</h3>
+                        {totalItems > 0 && (
+                          <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                            {totalItems} {totalItems === 1 ? 'item' : 'items'}
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      cart.map((item) => {
-                        const product = products.find(p => p.id === item.productId)
-                        return (
-                          <div key={item.productId} className="p-4 sm:p-4 border-b border-gray-100 hover:bg-gray-50 active:bg-gray-100 sm:active:bg-transparent">
-                            <div className="flex gap-3 sm:gap-3 items-start">
-                              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-lg flex items-center justify-center text-2xl sm:text-2xl flex-shrink-0">
-                                🌱
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-gray-800 text-sm sm:text-sm truncate">{product?.name}</p>
-                                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">{formatINR(item.pricePerUnit)} per unit</p>
-                                <div className="flex items-center gap-2 mt-3">
-                                  <button
-                                    onClick={async () => {
-                                      if (item.quantity > 1) {
+                      <button
+                        onClick={() => setShowMiniCart(false)}
+                        className="sm:hidden p-2 -mr-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        aria-label="Close cart"
+                      >
+                        <FaTimes className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto overscroll-contain">
+                      {cart.length === 0 ? (
+                        <div className="p-10 sm:p-8 text-center text-gray-500">
+                          <p className="flex justify-center mb-3"><FaShoppingCart className="w-14 h-14 sm:w-10 sm:h-10 text-gray-300" aria-hidden /></p>
+                          <p className="text-base sm:text-sm font-medium text-gray-600">Your cart is empty!</p>
+                          <p className="text-sm text-gray-400 mt-1">Add some organic goodness to get started.</p>
+                        </div>
+                      ) : (
+                        cart.map((item) => {
+                          const product = products.find(p => p.id === item.productId)
+                          return (
+                            <div key={item.productId} className="p-4 sm:p-4 border-b border-gray-100 hover:bg-gray-50 active:bg-gray-100 sm:active:bg-transparent">
+                              <div className="flex gap-3 sm:gap-3 items-start">
+                                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-lg flex items-center justify-center text-2xl sm:text-2xl flex-shrink-0">
+                                  🌱
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-gray-800 text-sm sm:text-sm truncate">{product?.name}</p>
+                                  <p className="text-xs sm:text-sm text-gray-500 mt-0.5">{formatINR(item.pricePerUnit)} per unit</p>
+                                  <div className="flex items-center gap-2 mt-3">
+                                    <button
+                                      onClick={async () => {
+                                        if (item.quantity > 1) {
+                                          setProcessing(item.productId)
+                                          try {
+                                            await updateQuantity(item.productId, item.quantity - 1)
+                                          } finally {
+                                            setProcessing(null)
+                                          }
+                                        }
+                                      }}
+                                      disabled={item.quantity <= 1 || processing === item.productId}
+                                      className="w-11 h-11 sm:w-8 sm:h-8 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 font-bold disabled:opacity-50 transition-colors text-lg sm:text-base flex items-center justify-center"
+                                      aria-label={`Decrease quantity of ${product?.name}`}
+                                    >
+                                      -
+                                    </button>
+                                    <span className="font-bold text-gray-800 w-8 sm:w-8 text-center text-base sm:text-sm">{item.quantity}</span>
+                                    <button
+                                      onClick={async () => {
                                         setProcessing(item.productId)
                                         try {
-                                          await updateQuantity(item.productId, item.quantity - 1)
+                                          await updateQuantity(item.productId, item.quantity + 1)
                                         } finally {
                                           setProcessing(null)
                                         }
-                                      }
-                                    }}
-                                    disabled={item.quantity <= 1 || processing === item.productId}
-                                    className="w-11 h-11 sm:w-8 sm:h-8 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 font-bold disabled:opacity-50 transition-colors text-lg sm:text-base flex items-center justify-center"
-                                    aria-label={`Decrease quantity of ${product?.name}`}
-                                  >
-                                    -
-                                  </button>
-                                  <span className="font-bold text-gray-800 w-8 sm:w-8 text-center text-base sm:text-sm">{item.quantity}</span>
+                                      }}
+                                      disabled={processing === item.productId}
+                                      className="w-11 h-11 sm:w-8 sm:h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold disabled:opacity-50 transition-colors text-lg sm:text-base flex items-center justify-center"
+                                      aria-label={`Increase quantity of ${product?.name}`}
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="text-right flex-shrink-0 flex flex-col items-end gap-2">
+                                  <p className="font-bold text-gray-800 text-sm sm:text-sm whitespace-nowrap">{formatINR(item.quantity * item.pricePerUnit)}</p>
                                   <button
                                     onClick={async () => {
                                       setProcessing(item.productId)
                                       try {
-                                        await updateQuantity(item.productId, item.quantity + 1)
+                                        await removeFromCart(item.productId)
                                       } finally {
                                         setProcessing(null)
                                       }
                                     }}
                                     disabled={processing === item.productId}
-                                    className="w-11 h-11 sm:w-8 sm:h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold disabled:opacity-50 transition-colors text-lg sm:text-base flex items-center justify-center"
-                                    aria-label={`Increase quantity of ${product?.name}`}
+                                    className="text-red-500 hover:text-red-700 active:text-red-800 text-xs sm:text-xs mt-0 disabled:opacity-50 transition-colors min-h-[44px] px-3 py-2 -mr-3 rounded-md sm:min-h-0 sm:px-0 sm:py-0 sm:rounded-none"
                                   >
-                                    +
+                                    Remove
                                   </button>
                                 </div>
                               </div>
-                              <div className="text-right flex-shrink-0 flex flex-col items-end gap-2">
-                                <p className="font-bold text-gray-800 text-sm sm:text-sm whitespace-nowrap">{formatINR(item.quantity * item.pricePerUnit)}</p>
-                                <button
-                                  onClick={async () => {
-                                    setProcessing(item.productId)
-                                    try {
-                                      await removeFromCart(item.productId)
-                                    } finally {
-                                      setProcessing(null)
-                                    }
-                                  }}
-                                  disabled={processing === item.productId}
-                                  className="text-red-500 hover:text-red-700 active:text-red-800 text-xs sm:text-xs mt-0 disabled:opacity-50 transition-colors min-h-[44px] px-3 py-2 -mr-3 rounded-md sm:min-h-0 sm:px-0 sm:py-0 sm:rounded-none"
-                                >
-                                  Remove
-                                </button>
-                              </div>
                             </div>
-                          </div>
-                        )
-                      })
-                    )}
-                  </div>
-                  
-                  {cart.length > 0 && (
-                    <div className="p-4 sm:p-4 bg-gray-50 border-t border-gray-100 flex-shrink-0">
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-gray-700 font-semibold text-base sm:text-base">Total:</span>
-                        <span className="text-xl sm:text-xl font-bold text-emerald-800">{formatINR(totalPrice)}</span>
-                      </div>
-                      <Link
-                        href="/cart"
-                        onClick={() => setShowMiniCart(false)}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white py-3.5 sm:py-3 rounded-xl sm:rounded-lg font-semibold text-center block transition-colors text-base sm:text-base shadow-lg shadow-emerald-600/25 min-h-[52px] flex items-center justify-center"
-                      >
-                        View Cart &amp; Checkout
-                      </Link>
+                          )
+                        })
+                      )}
                     </div>
-                  )}
-                </motion.div>
+                    
+                    {cart.length > 0 && (
+                      <div className="p-4 sm:p-4 bg-gray-50 border-t border-gray-100 flex-shrink-0">
+                        <div className="flex justify-between items-center mb-4">
+                          <span className="text-gray-700 font-semibold text-base sm:text-base">Total:</span>
+                          <span className="text-xl sm:text-xl font-bold text-emerald-800">{formatINR(totalPrice)}</span>
+                        </div>
+                        <Link
+                          href="/cart"
+                          onClick={() => setShowMiniCart(false)}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white py-3.5 sm:py-3 rounded-xl sm:rounded-lg font-semibold text-center block transition-colors text-base sm:text-base shadow-lg shadow-emerald-600/25 min-h-[52px] flex items-center justify-center"
+                        >
+                          View Cart &amp; Checkout
+                        </Link>
+                      </div>
+                    )}
+                  </motion.div>
                 </>
               )}
             </AnimatePresence>
           </div>
           
+          {/* Desktop Auth Section */}
           <div className="hidden md:flex items-center gap-2 md:gap-3">
             {isLoggedIn ? (
               <>
                 <Link href="/my-orders" className="bg-emerald-700 hover:bg-emerald-600 text-white px-3 md:px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base whitespace-nowrap">
                   My Orders
                 </Link>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="bg-red-600 hover:bg-red-500 text-white px-3 md:px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base"
-                >
-                  Logout
-                </button>
+                <div className="flex items-center gap-2 bg-emerald-700/60 border border-emerald-600/40 text-yellow-300 px-3 md:px-4 py-2 rounded-lg font-semibold text-sm md:text-base max-w-[160px] lg:max-w-[200px]">
+                  <FaUserCircle className="w-5 h-5 text-yellow-300 flex-shrink-0" />
+                  <span className="truncate">{displayName}</span>
+                </div>
               </>
             ) : (
               <Link href="/login" className="bg-yellow-400 hover:bg-yellow-300 text-emerald-900 px-3 md:px-5 py-2 rounded-lg font-bold transition-colors text-sm md:text-base whitespace-nowrap">
@@ -287,6 +318,7 @@ export default function Navbar() {
         </div>
       </div>
 
+      {/* Mobile Drawer */}
       <AnimatePresence>
         {showMobileMenu && (
           <motion.div
@@ -309,6 +341,10 @@ export default function Navbar() {
               <div className="pt-3 mt-3 border-t border-emerald-700 space-y-2">
                 {isLoggedIn ? (
                   <>
+                    <div className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-800/80 text-yellow-300 rounded-lg font-semibold text-center">
+                      <FaUserCircle className="w-5 h-5" />
+                      <span className="truncate">{displayName}</span>
+                    </div>
                     <Link
                       href="/my-orders"
                       onClick={() => setShowMobileMenu(false)}
@@ -316,13 +352,6 @@ export default function Navbar() {
                     >
                       My Orders
                     </Link>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="w-full px-4 py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-colors"
-                    >
-                      Logout
-                    </button>
                   </>
                 ) : (
                   <Link
