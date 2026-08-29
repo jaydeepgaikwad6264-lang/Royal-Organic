@@ -1,19 +1,3 @@
-import type { Metadata } from 'next'
-export const metadata: Metadata = {
-  title: 'Order Confirmed — Thank You!',
-  description: 'Thank you for your purchase from Royal Organics. Your order confirmation, payment details, delivery address and shipment tracking are available here.',
-  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
-  alternates: { canonical: '/thank-you' },
-  openGraph: {
-    title: 'Thank You | Royal Organics',
-    description: 'Your Royal Organics order has been placed successfully.',
-    url: 'https://royalorganics.in/thank-you',
-    type: 'website',
-    locale: 'en_IN',
-  },
-  twitter: { card: 'summary' },
-}
-
 'use client'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'

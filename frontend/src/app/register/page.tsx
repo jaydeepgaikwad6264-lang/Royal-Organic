@@ -1,19 +1,3 @@
-import type { Metadata } from 'next'
-export const metadata: Metadata = {
-  title: 'Create Your Account',
-  description: 'Register for a Royal Organics account to track orders, save delivery addresses and earn rewards on every organic Moringa purchase.',
-  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
-  alternates: { canonical: '/register' },
-  openGraph: {
-    title: 'Register | Royal Organics',
-    description: 'Create a Royal Organics account today for faster checkout and order tracking.',
-    url: 'https://royalorganics.in/register',
-    type: 'website',
-    locale: 'en_IN',
-  },
-  twitter: { card: 'summary' },
-}
-
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'

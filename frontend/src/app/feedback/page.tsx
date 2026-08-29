@@ -5,29 +5,6 @@ import { api } from '../../lib/api'
 import Image from 'next/image'
 import cap1 from '../../lib/moringa capsules/1.jpeg'
 import Link from 'next/link'
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'Feedback & Testimonials — Share Your Experience | Royal Organics',
-  description:
-    'Share your Royal Organics experience and read verified testimonials. Help grow community of happy customers rate, 5-star rating for Moringa Capsules and Powder, read verified reviews.',
-  keywords: [
-    'royal organics reviews',
-    'moringa testimonials',
-    'customer feedback moringa',
-    'royal organics ratings',
-    'verified moringa reviews india',
-  ],
-  alternates: {
-    canonical: '/feedback',
-  },
-  openGraph: {
-    title: 'Feedback & Testimonials — Royal Organics',
-    description: 'Share your Royal experience. Rate Royal Organics moringa products.',
-    type: 'website',
-    locale: 'en_IN',
-  },
-}
 
 export default function FeedbackPage() {
   const formSectionRef = useRef<HTMLFormElement | null>(null)

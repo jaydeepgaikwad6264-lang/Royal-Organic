@@ -1,19 +1,3 @@
-import type { Metadata } from 'next'
-export const metadata: Metadata = {
-  title: 'Login to Your Account',
-  description: 'Sign in to your Royal Organics account using email or Google. Access your orders, saved addresses and wellness recommendations.',
-  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
-  alternates: { canonical: '/login' },
-  openGraph: {
-    title: 'Login | Royal Organics',
-    description: 'Sign in to manage your Royal Organics orders and account.',
-    url: 'https://royalorganics.in/login',
-    type: 'website',
-    locale: 'en_IN',
-  },
-  twitter: { card: 'summary' },
-}
-
 'use client'
 import { useEffect, useState } from 'react'
 import { api } from '../../lib/api'

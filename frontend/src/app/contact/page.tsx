@@ -3,33 +3,6 @@ import { useState } from 'react'
 import FormField from '../../components/FormField'
 import { api } from '../../lib/api'
 import { FaFacebook, FaInstagram, FaLinkedin } from 'react-icons/fa'
-import type { Metadata } from 'next'
-
-const SITE_URL = 'https://royalorganics.in'
-
-export const metadata: Metadata = {
-  title: 'Contact Us — Email, Phone & Address | Royal Organics',
-  description:
-    'Contact Royal Organics for support, wholesale inquiries, and product questions. Email indicraftroyal@gmail.com or call +91 9217594902. Based in New Delhi, India.',
-  keywords: [
-    'contact royal organics',
-    'moringa support india',
-    'royal organics address',
-    'wholesale moringa inquiry',
-    'organic supplements customer care',
-  ],
-  alternates: {
-    canonical: '/contact',
-  },
-  openGraph: {
-    title: 'Contact Royal Organics — Support & Inquiries',
-    description:
-      'Get in touch with Royal Organics. Email, phone, and address details for New Delhi, India.',
-    url: `${SITE_URL}/contact`,
-    type: 'website',
-    locale: 'en_IN',
-  },
-}
 
 export default function ContactPage() {
   const [name, setName] = useState('')
