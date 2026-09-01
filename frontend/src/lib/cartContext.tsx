@@ -81,6 +81,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       const cartData = await api.addToCart(productId, quantity, pricePerUnit)
       setCart(cartData.items)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('royal:openCart'))
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to add to cart')
       throw err

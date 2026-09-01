@@ -88,6 +88,17 @@ export default function Navbar() {
     setShowMiniCart(false)
   }, [pathname])
 
+  useEffect(() => {
+    const handleOpenCart = () => {
+      setShowMiniCart(true)
+      setShowMobileMenu(false)
+      setShowUserDropdown(false)
+    }
+
+    window.addEventListener('royal:openCart', handleOpenCart)
+    return () => window.removeEventListener('royal:openCart', handleOpenCart)
+  }, [])
+
   const handleLogout = () => {
     if (!isClient) return
     localStorage.removeItem('token')

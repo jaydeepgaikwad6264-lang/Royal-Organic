@@ -128,24 +128,32 @@ export default function AddressPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             {addresses.map(address => (
-              <div key={address._id} className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-shadow">
-                {address.isDefault && <span className="inline-block bg-emerald-600 text-white text-xs px-3 py-1 rounded-full mb-3 sm:mb-4 font-semibold">Default</span>}
-                <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 sm:mb-2">{address.fullName}</h3>
-                <p className="text-gray-600 text-sm mb-1">{address.addressLine1}</p>
-                {address.addressLine2 && <p className="text-gray-600 text-sm mb-1">{address.addressLine2}</p>}
-                <p className="text-gray-600 text-sm mb-1">{address.city}, {address.state} {address.postalCode}</p>
-                <p className="text-gray-600 text-sm mb-1">{address.country}</p>
-                <p className="text-gray-600 text-sm mb-4 sm:mb-6">Phone: {address.phone}</p>
-                <div className="flex flex-wrap gap-2 sm:gap-3">
-                  <button onClick={() => handleEdit(address)} className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base">
-                    Edit
-                  </button>
-                  <button onClick={() => handleDelete(address._id)} className="bg-red-100 hover:bg-red-200 text-red-700 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base">
-                    Delete
-                  </button>
-                  <Link href={`/payment?address=${address._id}`} className="bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 px-3 sm:px-4 py-2 rounded-lg font-semibold text-center transition-all text-sm sm:text-base">
+              <div key={address._id} className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6 hover:shadow-xl transition-shadow flex flex-col justify-between">
+                <div>
+                  {address.isDefault && <span className="inline-block bg-emerald-600 text-white text-xs px-3 py-1 rounded-full mb-3 sm:mb-4 font-semibold">Default</span>}
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 sm:mb-2">{address.fullName}</h3>
+                  <p className="text-gray-600 text-sm mb-1">{address.addressLine1}</p>
+                  {address.addressLine2 && <p className="text-gray-600 text-sm mb-1">{address.addressLine2}</p>}
+                  <p className="text-gray-600 text-sm mb-1">{address.city}, {address.state} {address.postalCode}</p>
+                  <p className="text-gray-600 text-sm mb-1">{address.country}</p>
+                  <p className="text-gray-600 text-sm mb-4 sm:mb-6">Phone: {address.phone}</p>
+                </div>
+                
+                <div className="flex flex-col gap-3 pt-2">
+                  <Link 
+                    href={`/payment?address=${address._id}`} 
+                    className="w-full bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-gray-900 px-4 py-3 sm:py-3.5 rounded-xl font-bold text-center text-base sm:text-lg shadow-md hover:shadow-lg transition-all block"
+                  >
                     Deliver to this Address
                   </Link>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleEdit(address)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-lg font-medium transition-colors text-sm">
+                      Edit
+                    </button>
+                    <button onClick={() => handleDelete(address._id)} className="flex-1 bg-red-50 hover:bg-red-100 text-red-700 px-3 py-2 rounded-lg font-medium transition-colors text-sm">
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -154,7 +162,7 @@ export default function AddressPage() {
 
         <button
           onClick={() => { setIsAdding(true); setEditingId(null); }}
-          className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg shadow-xl hover:shadow-emerald-200 transition-all"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg font-medium text-sm sm:text-base shadow hover:shadow-md transition-all inline-flex items-center gap-1.5"
         >
           {addresses.length === 0 ? '+ Add Your First Address' : '+ Add New Address'}
         </button>
