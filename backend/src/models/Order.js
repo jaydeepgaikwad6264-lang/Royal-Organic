@@ -3,6 +3,9 @@ import mongoose from 'mongoose'
 const orderItemSchema = new mongoose.Schema(
   {
     productId: { type: String, required: true },
+    variantId: { type: String },
+    variantLabel: { type: String },
+    grams: { type: Number, min: 0 },
     quantity: { type: Number, required: true, min: 1 },
     pricePerUnit: { type: Number, required: true, min: 0 },
   },
@@ -51,6 +54,7 @@ const orderSchema = new mongoose.Schema(
     razorpayOrderId: { type: String },
     razorpayPaymentId: { type: String },
     razorpaySignature: { type: String },
+    stockDeducted: { type: Boolean, default: false },
     addressId: { type: mongoose.Schema.Types.ObjectId, ref: 'Address' },
     // Shiprocket shipping data
     shipping: { type: shippingSchema, default: () => ({ status: 'ORDER_PLACED' }) },

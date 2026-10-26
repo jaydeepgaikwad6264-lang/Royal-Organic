@@ -13,6 +13,9 @@ export default function CartPage() {
   const [processing, setProcessing] = useState<string | null>(null)
   const isClient = useClientOnly()
 
+  const itmKey = (item: { productId: string; variantId?: string }) =>
+    `${item.productId}::${item.variantId || ''}`
+
   if (!isClient) return null
 
   if (cart.length === 0) {
@@ -71,7 +74,7 @@ export default function CartPage() {
 
               return (
                 <div
-                  key={item.productId}
+                  key={itmKey(item)}
                   className="bg-white rounded-2xl shadow-md sm:shadow-lg border border-gray-100 p-3.5 sm:p-5 flex gap-3 sm:gap-5 hover:shadow-xl transition-shadow w-full relative"
                 >
                   {/* Thumbnail */}
@@ -89,14 +92,14 @@ export default function CartPage() {
                         <button
                           type="button"
                           onClick={async () => {
-                            setProcessing(item.productId)
+                            setProcessing(itmKey(item))
                             try {
-                              await removeFromCart(item.productId)
+                              await removeFromCart(item.productId, item.variantId)
                             } finally {
                               setProcessing(null)
                             }
                           }}
-                          disabled={processing === item.productId}
+                          disabled={processing === itmKey(item)}
                           aria-label="Remove item"
                           className="text-gray-400 hover:text-red-500 transition-colors p-1 disabled:opacity-50 absolute top-3 right-3 sm:static sm:top-auto sm:right-auto"
                         >
@@ -114,6 +117,11 @@ export default function CartPage() {
                       <p className="text-gray-500 text-xs sm:text-sm line-clamp-1 sm:line-clamp-2 mt-0.5">
                         {product.description}
                       </p>
+                      {item.variantLabel && (
+                        <p className="text-emerald-700 text-xs sm:text-sm font-semibold mt-0.5">
+                          {item.variantLabel}
+                        </p>
+                      )}
                     </div>
 
                     <div className="hidden sm:flex items-center gap-1.5 my-1.5">
@@ -130,15 +138,15 @@ export default function CartPage() {
                           type="button"
                           onClick={async () => {
                             if (item.quantity > 1) {
-                              setProcessing(item.productId)
+                              setProcessing(itmKey(item))
                               try {
-                                await updateQuantity(item.productId, item.quantity - 1)
+                                await updateQuantity(item.productId, item.quantity - 1, item.variantId)
                               } finally {
                                 setProcessing(null)
                               }
                             }
                           }}
-                          disabled={item.quantity <= 1 || processing === item.productId}
+                          disabled={item.quantity <= 1 || processing === itmKey(item)}
                           aria-label="Decrease quantity"
                           className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-white shadow-sm text-gray-700 font-bold hover:bg-gray-50 transition-colors disabled:opacity-40 flex items-center justify-center text-sm"
                         >
@@ -152,14 +160,14 @@ export default function CartPage() {
                         <button
                           type="button"
                           onClick={async () => {
-                            setProcessing(item.productId)
+                            setProcessing(itmKey(item))
                             try {
-                              await updateQuantity(item.productId, item.quantity + 1)
+                              await updateQuantity(item.productId, item.quantity + 1, item.variantId)
                             } finally {
                               setProcessing(null)
                             }
                           }}
-                          disabled={processing === item.productId}
+                          disabled={processing === itmKey(item)}
                           aria-label="Increase quantity"
                           className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors disabled:opacity-40 flex items-center justify-center text-sm"
                         >

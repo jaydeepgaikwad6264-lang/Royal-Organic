@@ -19,6 +19,9 @@ export type Address = {
 
 export type OrderItem = {
   productId: string
+  variantId?: string
+  variantLabel?: string
+  grams?: number
   quantity: number
   pricePerUnit: number
 }
@@ -102,6 +105,9 @@ async function request<T>(path: string, options: RequestInit & { json?: any } = 
 
 export type CartItem = {
   productId: string
+  variantId?: string
+  variantLabel?: string
+  grams?: number
   quantity: number
   pricePerUnit: number
 }
@@ -170,11 +176,12 @@ export const api = {
 
   // Cart
   getCart: () => request<Cart>('/api/cart'),
-  addToCart: (productId: string, quantity: number, pricePerUnit: number) =>
-    request<Cart>('/api/cart', { method: 'POST', json: { productId, quantity, pricePerUnit } }),
-  updateQuantity: (productId: string, quantity: number) =>
-    request<Cart>('/api/cart', { method: 'PUT', json: { productId, quantity } }),
-  removeFromCart: (productId: string) => request<Cart>(`/api/cart/${productId}`, { method: 'DELETE' }),
+  addToCart: (productId: string, quantity: number, variantId?: string) =>
+    request<Cart>('/api/cart', { method: 'POST', json: { productId, quantity, variantId } }),
+  updateQuantity: (productId: string, quantity: number, variantId?: string) =>
+    request<Cart>('/api/cart', { method: 'PUT', json: { productId, quantity, variantId } }),
+  removeFromCart: (productId: string, variantId?: string) =>
+    request<Cart>(`/api/cart/${productId}${variantId ? `?variantId=${encodeURIComponent(variantId)}` : ''}`, { method: 'DELETE' }),
   clearCart: () => request<Cart>('/api/cart', { method: 'DELETE' }),
 
   // Orders

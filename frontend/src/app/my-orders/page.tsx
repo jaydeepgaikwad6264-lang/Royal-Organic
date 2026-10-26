@@ -475,6 +475,9 @@ export default function MyOrdersPage() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-bold text-gray-800 text-sm sm:text-base truncate">{product?.name}</p>
+                                  {item.variantLabel && (
+                                    <p className="text-emerald-700 text-xs sm:text-sm font-semibold mt-0.5">{item.variantLabel}</p>
+                                  )}
                                   <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
                                     {item.quantity} units × {formatINR(item.pricePerUnit)}
                                   </p>

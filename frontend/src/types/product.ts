@@ -2,6 +2,13 @@ import type { StaticImageData } from 'next/image'
 
 export type PurchaseOption = 'onetime' | 'subscription'
 
+export type ProductVariant = {
+  id: string
+  label: string
+  grams: number
+  price: number
+}
+
 export interface Product {
   id: string
   slug: string
@@ -20,6 +27,8 @@ export interface Product {
   subscriptionPrice: number
   subscriptionInterval: 'monthly'
   inStock: boolean
+  variants?: ProductVariant[]
+  defaultVariantId?: string
 }
 
 export interface Filter {

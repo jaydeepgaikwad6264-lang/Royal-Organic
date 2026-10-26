@@ -12,7 +12,12 @@ import { useClientOnly } from '../lib/useClientOnly'
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addToCart, cart, updateQuantity, error: cartError } = useCart()
-  const existingItem = cart.find(item => item.productId === product.id)
+  const defaultVariantId = product.defaultVariantId || product.variants?.[0]?.id
+  const existingItem = cart.find(
+    item =>
+      item.productId === product.id &&
+      (defaultVariantId ? item.variantId === defaultVariantId : !item.variantId)
+  )
   const [processing, setProcessing] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const isClient = useClientOnly()
@@ -40,9 +45,10 @@ export default function ProductCard({ product }: { product: Product }) {
       return
     }
 
+    const defaultVariantId = product.defaultVariantId || product.variants?.[0]?.id
     setProcessing(true)
     try {
-      await addToCart(product.id, 1, product.price)
+      await addToCart(product.id, 1, defaultVariantId)
       if (typeof window !== 'undefined') {
         window.scrollTo({ top: 0, behavior: 'smooth' })
         window.dispatchEvent(new CustomEvent('royal:openCart'))
@@ -57,7 +63,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const handleUpdateQuantity = async (productId: string, newQuantity: number) => {
     setProcessing(true)
     try {
-      await updateQuantity(productId, newQuantity)
+      await updateQuantity(productId, newQuantity, existingItem?.variantId)
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('royal:openCart'))
       }

@@ -220,28 +220,32 @@ export default function Navbar() {
                       ) : (
                         cart.map((item) => {
                           const product = products.find(p => p.id === item.productId)
+                          const rowKey = `${item.productId}::${item.variantId || ''}`
                           return (
-                            <div key={item.productId} className="p-4 sm:p-4 border-b border-gray-100 hover:bg-gray-50 active:bg-gray-100 sm:active:bg-transparent">
+                            <div key={rowKey} className="p-4 sm:p-4 border-b border-gray-100 hover:bg-gray-50 active:bg-gray-100 sm:active:bg-transparent">
                               <div className="flex gap-3 sm:gap-3 items-start">
                                 <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-lg flex items-center justify-center text-2xl sm:text-2xl flex-shrink-0">
                                   🌱
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-semibold text-gray-800 text-sm sm:text-sm truncate">{product?.name}</p>
+                                  {item.variantLabel && (
+                                    <p className="text-xs sm:text-sm text-emerald-700 font-semibold mt-0.5">{item.variantLabel}</p>
+                                  )}
                                   <p className="text-xs sm:text-sm text-gray-500 mt-0.5">{formatINR(item.pricePerUnit)} per unit</p>
                                   <div className="flex items-center gap-2 mt-3">
                                     <button
                                       onClick={async () => {
                                         if (item.quantity > 1) {
-                                          setProcessing(item.productId)
+                                          setProcessing(rowKey)
                                           try {
-                                            await updateQuantity(item.productId, item.quantity - 1)
+                                            await updateQuantity(item.productId, item.quantity - 1, item.variantId)
                                           } finally {
                                             setProcessing(null)
                                           }
                                         }
                                       }}
-                                      disabled={item.quantity <= 1 || processing === item.productId}
+                                      disabled={item.quantity <= 1 || processing === rowKey}
                                       className="w-11 h-11 sm:w-8 sm:h-8 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 font-bold disabled:opacity-50 transition-colors text-lg sm:text-base flex items-center justify-center"
                                       aria-label={`Decrease quantity of ${product?.name}`}
                                     >
@@ -250,14 +254,14 @@ export default function Navbar() {
                                     <span className="font-bold text-gray-800 w-8 sm:w-8 text-center text-base sm:text-sm">{item.quantity}</span>
                                     <button
                                       onClick={async () => {
-                                        setProcessing(item.productId)
+                                        setProcessing(rowKey)
                                         try {
-                                          await updateQuantity(item.productId, item.quantity + 1)
+                                          await updateQuantity(item.productId, item.quantity + 1, item.variantId)
                                         } finally {
                                           setProcessing(null)
                                         }
                                       }}
-                                      disabled={processing === item.productId}
+                                      disabled={processing === rowKey}
                                       className="w-11 h-11 sm:w-8 sm:h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold disabled:opacity-50 transition-colors text-lg sm:text-base flex items-center justify-center"
                                       aria-label={`Increase quantity of ${product?.name}`}
                                     >
@@ -269,14 +273,14 @@ export default function Navbar() {
                                   <p className="font-bold text-gray-800 text-sm sm:text-sm whitespace-nowrap">{formatINR(item.quantity * item.pricePerUnit)}</p>
                                   <button
                                     onClick={async () => {
-                                      setProcessing(item.productId)
+                                      setProcessing(rowKey)
                                       try {
-                                        await removeFromCart(item.productId)
+                                        await removeFromCart(item.productId, item.variantId)
                                       } finally {
                                         setProcessing(null)
                                       }
                                     }}
-                                    disabled={processing === item.productId}
+                                    disabled={processing === rowKey}
                                     className="text-red-500 hover:text-red-700 active:text-red-800 text-xs sm:text-xs mt-0 disabled:opacity-50 transition-colors min-h-[44px] px-3 py-2 -mr-3 rounded-md sm:min-h-0 sm:px-0 sm:py-0 sm:rounded-none"
                                   >
                                     Remove

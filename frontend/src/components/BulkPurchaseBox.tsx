@@ -3,21 +3,29 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatINR } from '../lib/format'
 import { useCart } from '../lib/cartContext'
-import { products } from '../data/products'
 import { useClientOnly } from '../lib/useClientOnly'
+import { products } from '../data/products'
 
 export default function BulkPurchaseBox({
   productSlug,
   unitPrice,
 }: {
   productSlug: string
-  unitPrice: number
+  unitPrice?: number
 }) {
   const [qty, setQty] = useState<number>(1)
   const [processing, setProcessing] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const { addToCart } = useCart()
   const product = products.find(p => p.slug === productSlug)
+  const variants = product?.variants || []
+  const defaultVariantId =
+    product?.defaultVariantId || (variants.length > 0 ? variants[0].id : undefined)
+  const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
+    defaultVariantId,
+  )
+  const selectedVariant = variants.find(v => v.id === selectedVariantId)
+  const activePrice = selectedVariant?.price ?? product?.price ?? unitPrice ?? 0
   const isClient = useClientOnly()
   const router = useRouter()
 
@@ -38,8 +46,8 @@ export default function BulkPurchaseBox({
     setQty(val)
   }
 
-  const total = unitPrice * qty
-  const isValid = qty >= 1 && product && product.inStock
+  const total = activePrice * qty
+  const isValid = qty >= 1 && product && product.inStock && !!selectedVariant
 
   async function handleAddToCart() {
     if (!isValid) return
@@ -52,7 +60,7 @@ export default function BulkPurchaseBox({
 
     setProcessing(true)
     try {
-      await addToCart(product!.id, qty, unitPrice)
+      await addToCart(product!.id, qty, selectedVariantId)
       if (typeof window !== 'undefined') {
         window.scrollTo({ top: 0, behavior: 'smooth' })
         window.dispatchEvent(new CustomEvent('royal:openCart'))
@@ -66,6 +74,33 @@ export default function BulkPurchaseBox({
 
   return (
     <div className="mt-6 rounded-xl border border-royal-sand p-4 sm:p-5 bg-white shadow-sm">
+      {variants.length > 0 && (
+        <div className="mb-4 sm:mb-5">
+          <div className="font-heading text-lg sm:text-xl">Select Package Size</div>
+          <div className="mt-2 sm:mt-3 flex flex-wrap gap-2 sm:gap-3">
+            {variants.map(v => {
+              const isSelected = selectedVariantId === v.id
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => setSelectedVariantId(v.id)}
+                  aria-pressed={isSelected}
+                  className={`flex flex-col items-center px-3 sm:px-4 py-2.5 rounded-xl border-2 text-center transition-all min-w-[74px] sm:min-w-[84px] ${
+                    isSelected
+                      ? 'border-royal-green bg-emerald-50 ring-2 ring-royal-green/30'
+                      : 'border-royal-sand bg-white hover:border-royal-green/60'
+                  }`}
+                >
+                  <span className={`font-semibold text-sm sm:text-base ${isSelected ? 'text-royal-green' : 'text-gray-800'}`}>{v.label}</span>
+                  <span className="text-xs sm:text-sm text-emerald-700 font-bold mt-0.5">{formatINR(v.price)}</span>
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-2 text-xs sm:text-sm text-royal-muted">Price updates automatically as you change the package size.</p>
+        </div>
+      )}
       <div className="font-heading text-lg sm:text-xl">Quantity</div>
       <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-2 sm:gap-3" aria-label="Quantity selector">
         <button className="btn-outline px-3 sm:px-4 py-2.5 min-w-[48px] min-h-[48px] text-sm sm:text-base font-semibold rounded-lg" onClick={() => changeQty(-1)} aria-label="Decrease 1">-1</button>
@@ -87,7 +122,7 @@ export default function BulkPurchaseBox({
           <span className="font-heading text-xl sm:text-2xl text-emerald-800">{formatINR(total)}</span>
         </div>
         <div className="text-royal-muted text-xs sm:text-sm mt-1">
-          {formatINR(unitPrice)} per unit
+          {formatINR(activePrice)} per unit{selectedVariant ? ` • ${selectedVariant.label}` : ''}
         </div>
       </div>
       {product && !product.inStock ? (

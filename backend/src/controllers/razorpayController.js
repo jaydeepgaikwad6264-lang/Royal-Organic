@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import crypto from 'crypto'
 import Razorpay from 'razorpay'
 import { processShiprocketAsync } from '../services/shiprocketService.js'
+import { deductVariantStock } from '../services/catalogService.js'
 
 dotenv.config()
 
@@ -200,6 +201,18 @@ export async function verifyRazorpayPayment(req, res) {
       } catch (err) {
         console.error('[Razorpay Verify] Idempotent Shiprocket error:', err.message)
       }
+      if (!order.stockDeducted) {
+        for (const item of order.products) {
+          if (!item.variantId) continue
+          try {
+            await deductVariantStock(item.productId, item.variantId, item.quantity)
+          } catch (err) {
+            console.error('[Razorpay Verify] Idempotent stock deduction error:', err.message)
+          }
+        }
+        order.stockDeducted = true
+        await order.save()
+      }
       return res.json({
         success: true,
         orderId: order._id,
@@ -288,6 +301,15 @@ export async function verifyRazorpayPayment(req, res) {
     if (razorpaySignature) order.razorpaySignature = razorpaySignature
     order.paymentIntentId = razorpayPaymentId
     await order.save()
+
+    for (const item of order.products) {
+      if (!item.variantId) continue
+      try {
+        await deductVariantStock(item.productId, item.variantId, item.quantity)
+      } catch (err) {
+        console.error('[Razorpay Verify] Stock deduction error:', err.message)
+      }
+    }
 
     try {
       await processShiprocketAsync(order)
@@ -391,6 +413,14 @@ export async function razorpayWebhook(req, res) {
           `[Razorpay Webhook] ${event} → Order ${order._id} status=${order.status}` +
             (payment?.id ? ` razorpayPaymentId=${payment.id}` : ''),
         )
+        for (const item of order.products) {
+          if (!item.variantId) continue
+          try {
+            await deductVariantStock(item.productId, item.variantId, item.quantity)
+          } catch (err) {
+            console.error('[Razorpay Webhook] Stock deduction error:', err.message)
+          }
+        }
         try {
           await processShiprocketAsync(order)
         } catch (err) {

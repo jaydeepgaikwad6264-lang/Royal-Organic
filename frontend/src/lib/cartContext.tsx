@@ -5,9 +5,9 @@ import { useClientOnly } from './useClientOnly'
 
 type CartContextType = {
   cart: CartItem[]
-  addToCart: (productId: string, quantity: number, pricePerUnit: number) => Promise<void>
-  removeFromCart: (productId: string) => Promise<void>
-  updateQuantity: (productId: string, quantity: number) => Promise<void>
+  addToCart: (productId: string, quantity: number, variantId?: string) => Promise<void>
+  removeFromCart: (productId: string, variantId?: string) => Promise<void>
+  updateQuantity: (productId: string, quantity: number, variantId?: string) => Promise<void>
   clearCart: () => Promise<void>
   totalItems: number
   totalPrice: number
@@ -77,9 +77,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [isClient, cart.length])
 
-  const addToCart = async (productId: string, quantity: number, pricePerUnit: number) => {
+  const addToCart = async (productId: string, quantity: number, variantId?: string) => {
     try {
-      const cartData = await api.addToCart(productId, quantity, pricePerUnit)
+      const cartData = await api.addToCart(productId, quantity, variantId)
       setCart(cartData.items)
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('royal:openCart'))
@@ -90,9 +90,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const removeFromCart = async (productId: string) => {
+  const removeFromCart = async (productId: string, variantId?: string) => {
     try {
-      const cartData = await api.removeFromCart(productId)
+      const cartData = await api.removeFromCart(productId, variantId)
       setCart(cartData.items)
     } catch (err: any) {
       setError(err.message || 'Failed to remove from cart')
@@ -100,9 +100,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const updateQuantity = async (productId: string, quantity: number) => {
+  const updateQuantity = async (productId: string, quantity: number, variantId?: string) => {
     try {
-      const cartData = await api.updateQuantity(productId, quantity)
+      const cartData = await api.updateQuantity(productId, quantity, variantId)
       setCart(cartData.items)
     } catch (err: any) {
       setError(err.message || 'Failed to update quantity')

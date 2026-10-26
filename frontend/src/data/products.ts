@@ -44,10 +44,17 @@ export const products: Product[] = [
     badges: ['Non-GMO', 'Vegan', 'Lab Tested'],
     image: moringaPowderFront,
     images: [moringaPowderFront, moringaPowderBack, moringaPowderSide],
+    variants: [
+      { id: '1kg', label: '1 kg', grams: 1000, price: 699 },
+      { id: '500g', label: '500 g', grams: 500, price: 399 },
+      { id: '250g', label: '250 g', grams: 250, price: 199 },
+      { id: '100g', label: '100 g', grams: 100, price: 149 },
+    ],
+    defaultVariantId: '500g',
     price: 399,
     originalPrice: 999,
     subscriptionPrice: 359,
     subscriptionInterval: 'monthly',
-    inStock: false,
+    inStock: true,
   },
 ]

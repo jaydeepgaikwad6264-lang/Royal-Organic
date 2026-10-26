@@ -6,6 +6,7 @@ import dotenv from 'dotenv'
 import mongoose from 'mongoose'
 import app from './app.js'
 import { MongoMemoryServer } from 'mongodb-memory-server'
+import { upsertMoringaPowderCatalog } from './services/catalogService.js'
 
 dotenv.config()
 
@@ -22,6 +23,7 @@ async function start() {
     }
     await mongoose.connect(uri, { autoIndex: true })
     console.log('MongoDB connected')
+    await upsertMoringaPowderCatalog()
     const server = http.createServer(app)
     server.listen(PORT, () => {
       console.log(`API server listening on port ${PORT}`)
