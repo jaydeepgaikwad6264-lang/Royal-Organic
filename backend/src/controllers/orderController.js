@@ -2,49 +2,10 @@ import Order from '../models/Order.js'
 import dotenv from 'dotenv'
 import Stripe from 'stripe'
 import { processShiprocketAsync } from '../services/shiprocketService.js'
-import { getCatalogProductByProductId, findVariant, assertPurchasableVariant } from '../services/catalogService.js'
+import { normalizeVariantId, resolvePurchasableItem } from '../services/catalogService.js'
 
 dotenv.config()
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_')
-
-const STATIC_PRICE_BY_PRODUCT_ID = {
-  'moringa-capsules-1': { price: 399, variantId: 'default', variantLabel: '60 capsules' },
-}
-
-function normalizeVariantId(v) {
-  const s = typeof v === 'string' ? v.trim() : ''
-  return s || undefined
-}
-
-async function resolvePricing({ productId, variantId, quantity }) {
-  const catalog = await getCatalogProductByProductId(productId)
-  if (catalog && Array.isArray(catalog.variants) && catalog.variants.length > 0) {
-    const chosenId = normalizeVariantId(variantId)
-    const variant = findVariant(catalog, chosenId)
-    const check = assertPurchasableVariant(variant, quantity)
-    if (!check.ok) return { ok: false, error: check.error }
-    return {
-      ok: true,
-      pricePerUnit: variant.price,
-      variantId: variant.id,
-      variantLabel: variant.label,
-      grams: variant.grams,
-    }
-  }
-
-  const fallback = STATIC_PRICE_BY_PRODUCT_ID[productId]
-  if (!fallback) {
-    return { ok: false, error: 'Invalid product.' }
-  }
-
-  return {
-    ok: true,
-    pricePerUnit: fallback.price,
-    variantId: fallback.variantId,
-    variantLabel: fallback.variantLabel,
-    grams: undefined,
-  }
-}
 
 async function normalizeOrderProducts(products) {
   const normalized = []
@@ -57,7 +18,7 @@ async function normalizeOrderProducts(products) {
       return { ok: false, error: 'Invalid products payload.' }
     }
 
-    const resolved = await resolvePricing({ productId, variantId, quantity })
+    const resolved = await resolvePurchasableItem({ productId, variantId, quantity })
     if (!resolved.ok) return { ok: false, error: resolved.error }
 
     normalized.push({

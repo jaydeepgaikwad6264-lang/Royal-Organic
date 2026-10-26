@@ -1,47 +1,8 @@
 import Cart from '../models/Cart.js'
-import { getCatalogProductByProductId, findVariant, assertPurchasableVariant } from '../services/catalogService.js'
-
-const STATIC_PRICE_BY_PRODUCT_ID = {
-  'moringa-capsules-1': { price: 399, variantId: 'default', variantLabel: '60 capsules' },
-}
-
-function normalizeVariantId(v) {
-  const s = typeof v === 'string' ? v.trim() : ''
-  return s || undefined
-}
+import { normalizeVariantId, resolvePurchasableItem } from '../services/catalogService.js'
 
 function itemKey(productId, variantId) {
   return `${productId}::${variantId || ''}`
-}
-
-async function resolvePricing({ productId, variantId, quantity }) {
-  const catalog = await getCatalogProductByProductId(productId)
-  if (catalog && Array.isArray(catalog.variants) && catalog.variants.length > 0) {
-    const chosenId = normalizeVariantId(variantId)
-    const variant = findVariant(catalog, chosenId)
-    const check = assertPurchasableVariant(variant, quantity)
-    if (!check.ok) return { ok: false, error: check.error }
-    return {
-      ok: true,
-      pricePerUnit: variant.price,
-      variantId: variant.id,
-      variantLabel: variant.label,
-      grams: variant.grams,
-    }
-  }
-
-  const fallback = STATIC_PRICE_BY_PRODUCT_ID[productId]
-  if (!fallback) {
-    return { ok: false, error: 'Invalid product.' }
-  }
-
-  return {
-    ok: true,
-    pricePerUnit: fallback.price,
-    variantId: fallback.variantId,
-    variantLabel: fallback.variantLabel,
-    grams: undefined,
-  }
 }
 
 export async function getCart(req, res) {
@@ -78,7 +39,7 @@ export async function addToCart(req, res) {
     const existingItemIndex = cart.items.findIndex(item => itemKey(item.productId, item.variantId) === itemKey(productId, normalizedVariantId))
     const nextQuantity = existingItemIndex > -1 ? cart.items[existingItemIndex].quantity + quantity : quantity
 
-    const resolved = await resolvePricing({ productId, variantId: normalizedVariantId, quantity: nextQuantity })
+    const resolved = await resolvePurchasableItem({ productId, variantId: normalizedVariantId, quantity: nextQuantity })
     if (!resolved.ok) return res.status(400).json({ error: resolved.error })
 
     if (existingItemIndex > -1) {
@@ -131,7 +92,7 @@ export async function updateQuantity(req, res) {
     if (quantity <= 0) {
       cart.items.splice(itemIndex, 1)
     } else {
-      const resolved = await resolvePricing({ productId, variantId: normalizedVariantId, quantity })
+      const resolved = await resolvePurchasableItem({ productId, variantId: normalizedVariantId, quantity })
       if (!resolved.ok) return res.status(400).json({ error: resolved.error })
       cart.items[itemIndex].quantity = quantity
       cart.items[itemIndex].pricePerUnit = resolved.pricePerUnit
