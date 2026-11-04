@@ -18,9 +18,10 @@ import cap3 from '../lib/moringa capsules/3.jpeg'
 import cap4 from '../lib/moringa capsules/4.jpeg'
 import cap5 from '../lib/moringa capsules/5.jpeg'
 import cap6 from '../lib/moringa capsules/6.jpeg'
-import moringaPowderFront from '../lib/Moringa powder front.png'
-import moringaPowderBack from '../lib/morgina powder back.png'
-import moringaPowderSide from '../lib/moringa powder side.png'
+import powderPouch from '../lib/moringa powders/Royal Organics Moringa Leaf Powder Pouch.png'
+import powderPackaging from '../lib/moringa powders/Royal Organics Moringa Powder Packaging.png'
+import powderPhoto1 from '../lib/moringa powders/WhatsApp Image 2026-10-11 at 8.25.07 PM.jpeg'
+import powderPhoto2 from '../lib/moringa powders/WhatsApp Image 2026-10-11 at 8.25.28 PM.jpeg'
 import certAyush from '../lib/certificates/Ayush License_New_front only (1)_page-0001.jpg'
 import certUsfda from '../lib/certificates/HERBALFARM LIFECARE_USFDA_page-0001.jpg'
 import certIec from '../lib/certificates/certificateOfIEC_page-0001.jpg'
@@ -115,8 +116,8 @@ export default function HomePage() {
       <ProductShowcase
         title="Moringa Powder"
         description="Fine-milled for smooth mixing in smoothies and recipes."
-        image={moringaPowderFront}
-        images={[moringaPowderFront, moringaPowderBack, moringaPowderSide]}
+        image={powderPouch}
+        images={[powderPouch, powderPackaging, powderPhoto1, powderPhoto2]}
         align="right"
         viewHref="/products/moringa-powder"
         buyHref="/shop"

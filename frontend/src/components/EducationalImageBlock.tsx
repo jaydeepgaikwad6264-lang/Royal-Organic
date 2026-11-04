@@ -1,7 +1,7 @@
 'use client'
 import Image, { type StaticImageData } from 'next/image'
 import { motion, useReducedMotion } from 'framer-motion'
-import moringaPowderFront from '../lib/Moringa powder front.png'
+import powderPouch from '../lib/moringa powders/Royal Organics Moringa Leaf Powder Pouch.png'
 import cap2 from '../lib/moringa capsules/2.jpeg'
 
 const bullets = [
@@ -25,8 +25,8 @@ export default function EducationalImageBlock() {
           >
             <div className="relative h-36 sm:h-44 md:h-56 rounded-xl overflow-hidden border border-royal-sand bg-white shadow-soft">
               <Image
-                src={moringaPowderFront}
-                alt="Moringa leaf close-up"
+                src={powderPouch}
+                alt="Royal Organics moringa leaf powder pouch"
                 fill
                 className="object-contain p-2 sm:p-3"
                 sizes="(max-width: 768px) 50vw, 25vw"

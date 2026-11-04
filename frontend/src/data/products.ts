@@ -5,9 +5,10 @@ import cap3 from '../lib/moringa capsules/3.jpeg'
 import cap4 from '../lib/moringa capsules/4.jpeg'
 import cap5 from '../lib/moringa capsules/5.jpeg'
 import cap6 from '../lib/moringa capsules/6.jpeg'
-import moringaPowderFront from '../lib/Moringa powder front.png'
-import moringaPowderBack from '../lib/morgina powder back.png'
-import moringaPowderSide from '../lib/moringa powder side.png'
+import powderPouch from '../lib/moringa powders/Royal Organics Moringa Leaf Powder Pouch.png'
+import powderPackaging from '../lib/moringa powders/Royal Organics Moringa Powder Packaging.png'
+import powderPhoto1 from '../lib/moringa powders/WhatsApp Image 2026-10-11 at 8.25.07 PM.jpeg'
+import powderPhoto2 from '../lib/moringa powders/WhatsApp Image 2026-10-11 at 8.25.28 PM.jpeg'
 
 export const products: Product[] = [
   {
@@ -42,8 +43,8 @@ export const products: Product[] = [
     dosage: 'Take 1 tsp daily. Mix into smoothies, water, or oatmeal.',
     ingredients: ['100% Organic Moringa Oleifera Leaf Powder'],
     badges: ['Non-GMO', 'Vegan', 'Lab Tested'],
-    image: moringaPowderFront,
-    images: [moringaPowderFront, moringaPowderBack, moringaPowderSide],
+    image: powderPouch,
+    images: [powderPouch, powderPackaging, powderPhoto1, powderPhoto2],
     variants: [
       { id: '1kg', label: '1 kg', grams: 1000, price: 699 },
       { id: '500g', label: '500 g', grams: 500, price: 399 },
