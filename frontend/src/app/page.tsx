@@ -116,8 +116,8 @@ export default function HomePage() {
       <ProductShowcase
         title="Moringa Powder"
         description="Fine-milled for smooth mixing in smoothies and recipes."
-        image={powderPouch}
-        images={[powderPouch, powderPackaging, powderPhoto1, powderPhoto2]}
+        image={powderPhoto2}
+        images={[powderPhoto2, powderPhoto1, powderPackaging, powderPouch]}
         align="right"
         viewHref="/products/moringa-powder"
         buyHref="/shop"

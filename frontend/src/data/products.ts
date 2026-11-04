@@ -43,8 +43,8 @@ export const products: Product[] = [
     dosage: 'Take 1 tsp daily. Mix into smoothies, water, or oatmeal.',
     ingredients: ['100% Organic Moringa Oleifera Leaf Powder'],
     badges: ['Non-GMO', 'Vegan', 'Lab Tested'],
-    image: powderPouch,
-    images: [powderPouch, powderPackaging, powderPhoto1, powderPhoto2],
+    image: powderPhoto2,
+    images: [powderPhoto2, powderPhoto1, powderPackaging, powderPouch],
     variants: [
       { id: '1kg', label: '1 kg', grams: 1000, price: 699 },
       { id: '500g', label: '500 g', grams: 500, price: 399 },
