@@ -43,6 +43,7 @@ export default function AdminPage() {
   const allProducts = useAllProducts()
 
   const [phase, setPhase] = useState<'checking' | 'denied' | 'ready'>('checking')
+  const [deniedReason, setDeniedReason] = useState('')
   const [adminName, setAdminName] = useState('')
   const [tab, setTab] = useState<'orders' | 'products'>('orders')
 
@@ -65,14 +66,19 @@ export default function AdminPage() {
       .then((session) => {
         if (!active) return
         if (!session.isAdmin) {
+          setDeniedReason(`Signed in as ${session.email}, which is not on the admin allowlist.`)
           setPhase('denied')
           return
         }
         setAdminName(session.name || session.email)
         setPhase('ready')
       })
-      .catch(() => {
-        if (active) setPhase('denied')
+      .catch((err: any) => {
+        if (!active) return
+        setDeniedReason(
+          err?.message || 'Could not reach the server. Make sure the backend API is running.',
+        )
+        setPhase('denied')
       })
     return () => {
       active = false
@@ -209,6 +215,11 @@ export default function AdminPage() {
             This dashboard is restricted to Royal Organics administrators. Sign in with an admin
             account to continue.
           </p>
+          {deniedReason && (
+            <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              {deniedReason}
+            </p>
+          )}
           <Link
             href="/login"
             className="mt-6 inline-block rounded-xl bg-emerald-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-emerald-700"

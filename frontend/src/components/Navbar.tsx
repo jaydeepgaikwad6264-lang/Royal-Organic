@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../lib/cartContext'
-import { useEffect, useState, useRef } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { useClientOnly } from '../lib/useClientOnly'
 import { useAllProducts } from '../lib/useAllProducts'
@@ -42,40 +42,40 @@ export default function Navbar() {
   const isClient = useClientOnly()
   const allProducts = useAllProducts()
 
-  useEffect(() => {
-    if (!isClient) return
-    const checkAuth = () => {
-      const token = localStorage.getItem('token')
-      const valid = !!token && token !== 'undefined' && token !== 'null'
-      setIsLoggedIn(valid)
+  const checkAuth = useCallback(() => {
+    const token = localStorage.getItem('token')
+    const valid = !!token && token !== 'undefined' && token !== 'null'
+    setIsLoggedIn(valid)
 
-      if (valid) {
-        let email = localStorage.getItem('email') || localStorage.getItem('userEmail') || ''
-        if (!email) {
-          const storedUser = localStorage.getItem('user')
-          if (storedUser) {
-            try {
-              const parsed = JSON.parse(storedUser)
-              email = parsed.email || ''
-            } catch {
-              if (storedUser.includes('@')) email = storedUser
-            }
+    if (valid) {
+      let email = localStorage.getItem('email') || localStorage.getItem('userEmail') || ''
+      if (!email) {
+        const storedUser = localStorage.getItem('user')
+        if (storedUser) {
+          try {
+            const parsed = JSON.parse(storedUser)
+            email = parsed.email || ''
+          } catch {
+            if (storedUser.includes('@')) email = storedUser
           }
         }
-        setDisplayName(email ? extractNameFromEmail(email) : 'User')
-        api.getSession()
-          .then(session => setIsAdmin(!!session.isAdmin))
-          .catch(() => setIsAdmin(false))
-      } else {
-        setDisplayName('')
-        setIsAdmin(false)
       }
+      setDisplayName(email ? extractNameFromEmail(email) : 'User')
+      api.getSession()
+        .then(session => setIsAdmin(!!session.isAdmin))
+        .catch(() => setIsAdmin(false))
+    } else {
+      setDisplayName('')
+      setIsAdmin(false)
     }
-    
+  }, [])
+
+  useEffect(() => {
+    if (!isClient) return
     checkAuth()
     window.addEventListener('storage', checkAuth)
     return () => window.removeEventListener('storage', checkAuth)
-  }, [pathname, isClient])
+  }, [pathname, isClient, checkAuth])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -327,7 +327,7 @@ export default function Navbar() {
               <div className="relative" ref={userDropdownRef}>
                 <button
                   type="button"
-                  onClick={() => setShowUserDropdown(!showUserDropdown)}
+                  onClick={() => { setShowUserDropdown(!showUserDropdown); checkAuth() }}
                   className="flex items-center gap-2 bg-emerald-700/80 hover:bg-emerald-700 border border-emerald-600/50 text-yellow-300 px-3.5 py-2 rounded-lg font-semibold text-sm md:text-base transition-all cursor-pointer shadow-sm"
                   aria-expanded={showUserDropdown}
                   aria-haspopup="true"
@@ -404,7 +404,7 @@ export default function Navbar() {
 
           {/* Mobile Hamburger Button */}
           <button
-            onClick={() => { setShowMobileMenu(!showMobileMenu); setShowMiniCart(false) }}
+            onClick={() => { setShowMobileMenu(!showMobileMenu); setShowMiniCart(false); checkAuth() }}
             className="md:hidden text-white p-2 rounded-lg hover:bg-emerald-700 transition-colors"
             aria-label={showMobileMenu ? 'Close menu' : 'Open menu'}
           >

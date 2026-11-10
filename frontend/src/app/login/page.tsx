@@ -29,6 +29,7 @@ export default function LoginPage() {
       const res = await api.login(email)
       localStorage.setItem('token', res.token)
       localStorage.setItem('email', email) // <-- Add this line
+      window.dispatchEvent(new Event('storage'))
       setSignedIn(true)
       await fetchCart()
     } catch (err: any) {
@@ -53,6 +54,9 @@ export default function LoginPage() {
                   className="btn-outline px-4 py-2"
                   onClick={() => { 
                     localStorage.removeItem('token'); 
+                    localStorage.removeItem('email');
+                    localStorage.removeItem('user');
+                    window.dispatchEvent(new Event('storage'))
                     setSignedIn(false);
                     fetchCart();
                   }}
