@@ -221,7 +221,7 @@ export type RazorpayVerifyResponse = {
 
 export const api = {
   login: (email: string, password?: string) => request<AuthResponse>('/api/auth/login', { method: 'POST', json: { email, password } }),
-  getSession: () => request<SessionUser>('/api/auth/me'),
+  getSession: () => request<SessionUser>(`/api/auth/me?t=${Date.now()}`, { cache: 'no-store' }),
   register: (name: string, email: string, password: string) =>
     request<AuthResponse>('/api/auth/register', { method: 'POST', json: { name, email, password } }),
   googleUrl: () => `${API_BASE}/api/auth/google`,
