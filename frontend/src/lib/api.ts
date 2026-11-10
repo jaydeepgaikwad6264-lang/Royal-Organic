@@ -112,6 +112,67 @@ export type CartItem = {
   pricePerUnit: number
 }
 
+export type StorefrontVariant = {
+  id: string
+  label: string
+  grams: number
+  price: number
+  stockQuantity?: number
+}
+
+/** Product document stored in MongoDB and managed from the admin dashboard. */
+export type StorefrontProductDto = {
+  _id: string
+  productId: string
+  slug: string
+  name: string
+  active: boolean
+  storefront: boolean
+  category: 'powder' | 'capsules'
+  description?: string
+  highlights?: string[]
+  benefits?: string[]
+  dosage?: string
+  ingredients?: string[]
+  badges?: string[]
+  images?: string[]
+  originalPrice?: number
+  subscriptionPrice?: number
+  defaultVariantId?: string
+  variants: StorefrontVariant[]
+  createdAt: string
+}
+
+export type SessionUser = {
+  id: string
+  name: string
+  email: string
+  provider: 'manual' | 'google'
+  avatar?: string
+  isAdmin: boolean
+}
+
+export type AdminOrder = Omit<Order, 'user'> & {
+  user: { _id: string; name: string; email: string } | string
+}
+
+export type CreateProductPayload = {
+  name: string
+  slug?: string
+  category: 'powder' | 'capsules'
+  description?: string
+  highlights?: string
+  benefits?: string
+  dosage?: string
+  ingredients?: string
+  badges?: string
+  images?: string
+  originalPrice?: number
+  subscriptionPrice?: number
+  published?: boolean
+  variants: Array<{ label: string; grams: number; price: number; stockQuantity?: number }>
+}
+
 export type Cart = {
   _id: string
   user: string
@@ -160,6 +221,7 @@ export type RazorpayVerifyResponse = {
 
 export const api = {
   login: (email: string, password?: string) => request<AuthResponse>('/api/auth/login', { method: 'POST', json: { email, password } }),
+  getSession: () => request<SessionUser>('/api/auth/me'),
   register: (name: string, email: string, password: string) =>
     request<AuthResponse>('/api/auth/register', { method: 'POST', json: { name, email, password } }),
   googleUrl: () => `${API_BASE}/api/auth/google`,
@@ -216,4 +278,14 @@ export const api = {
   createFeedback: (data: { name: string; email?: string; message: string; rating?: number }) =>
     request<{ ok: true; feedback: Feedback }>('/api/feedback', { method: 'POST', json: data }),
   listFeedback: () => request<{ feedbacks: Feedback[] }>('/api/feedback'),
+
+  // Storefront products created from the admin dashboard (stored in MongoDB)
+  getStorefrontProducts: () =>
+    request<StorefrontProductDto[]>('/api/catalog/products', { cache: 'no-store' }),
+
+  // Admin
+  adminGetOrders: () => request<AdminOrder[]>('/api/admin/orders', { cache: 'no-store' }),
+  adminGetProducts: () => request<StorefrontProductDto[]>('/api/admin/products', { cache: 'no-store' }),
+  adminCreateProduct: (payload: CreateProductPayload) =>
+    request<StorefrontProductDto>('/api/admin/products', { method: 'POST', json: payload }),
 }

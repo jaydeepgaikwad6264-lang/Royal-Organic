@@ -18,6 +18,12 @@ const nextConfig = {
         hostname: 'static.wixstatic.com',
         pathname: '/**',
       },
+      // Admin-created products use image URLs pasted in the dashboard.
+      {
+        protocol: 'https',
+        hostname: '**',
+        pathname: '/**',
+      },
     ],
   }
 };

@@ -1,3 +1,4 @@
+import { getAllProducts } from '../../../lib/productCatalog'
 import { products } from '../../../data/products'
 import type { Metadata } from 'next'
 import BulkPurchaseBox from '../../../components/BulkPurchaseBox'
@@ -14,7 +15,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const product = products.find((p) => p.slug === params.slug)
+  const allProducts = await getAllProducts()
+  const product = allProducts.find((p) => p.slug === params.slug)
   if (!product) return { title: 'Product Not Found' }
   const imageUrl = typeof product.image === 'string' ? product.image : product.image.src
   return {
@@ -42,11 +44,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
 }
 
-export default function ProductPage({ params }: { params: { slug: string } }) {
-  const product = products.find((p) => p.slug === params.slug)
+export default async function ProductPage({ params }: { params: { slug: string } }) {
+  const allProducts = await getAllProducts()
+  const product = allProducts.find((p) => p.slug === params.slug)
   if (!product) notFound()
 
-  const discountPercent = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+  const discountPercent = product.originalPrice > product.price
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : 0
   const imageUrl = typeof product.image === 'string' ? product.image : product.image.src
 
   const jsonLdProduct = {
@@ -129,31 +134,47 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
 
           <div className="mt-5 sm:mt-6 flex flex-wrap items-baseline gap-3 sm:gap-4">
             <div className="text-3xl sm:text-4xl font-bold text-emerald-700">{formatINR(product.price)}</div>
-            <div className="text-gray-400 line-through text-base sm:text-xl">{formatINR(product.originalPrice)}</div>
-            <span className="text-green-600 font-bold bg-green-50 px-2.5 sm:px-3 py-1 rounded-full text-sm sm:text-base">{discountPercent}% OFF</span>
+            {discountPercent > 0 && (
+              <>
+                <div className="text-gray-400 line-through text-base sm:text-xl">{formatINR(product.originalPrice)}</div>
+                <span className="text-green-600 font-bold bg-green-50 px-2.5 sm:px-3 py-1 rounded-full text-sm sm:text-base">{discountPercent}% OFF</span>
+              </>
+            )}
           </div>
           <p className="mt-2 text-xs sm:text-sm text-gray-500">Inclusive of all taxes • Free delivery on orders over {formatINR(499)}</p>
 
           <TrustComplianceSection />
-          <BulkPurchaseBox productSlug={product.slug} unitPrice={product.price} />
-          <div className="mt-6 sm:mt-8">
-            <h2 className="font-heading text-xl sm:text-2xl">Benefits</h2>
-            <ul className="mt-2 sm:mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm sm:text-base">
-              {product.benefits.map((b) => (
-                <li key={b} className="text-royal-green/80">• {b}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="mt-5 sm:mt-6">
-            <h2 className="font-heading text-xl sm:text-2xl">Dosage</h2>
-            <p className="mt-2 text-royal-green/80 text-sm sm:text-base">{product.dosage}</p>
-          </div>
-          <div className="mt-5 sm:mt-6">
-            <h2 className="font-heading text-xl sm:text-2xl">Ingredients</h2>
-            <ul className="mt-2 text-royal-green/80 space-y-1 text-sm sm:text-base">
-              {product.ingredients.map((i) => <li key={i}>• {i}</li>)}
-            </ul>
-          </div>
+          <BulkPurchaseBox
+            productId={product.id}
+            unitPrice={product.price}
+            variants={product.variants}
+            defaultVariantId={product.defaultVariantId}
+            inStock={product.inStock}
+          />
+          {product.benefits.length > 0 && (
+            <div className="mt-6 sm:mt-8">
+              <h2 className="font-heading text-xl sm:text-2xl">Benefits</h2>
+              <ul className="mt-2 sm:mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm sm:text-base">
+                {product.benefits.map((b) => (
+                  <li key={b} className="text-royal-green/80">• {b}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {product.dosage && (
+            <div className="mt-5 sm:mt-6">
+              <h2 className="font-heading text-xl sm:text-2xl">Dosage</h2>
+              <p className="mt-2 text-royal-green/80 text-sm sm:text-base">{product.dosage}</p>
+            </div>
+          )}
+          {product.ingredients.length > 0 && (
+            <div className="mt-5 sm:mt-6">
+              <h2 className="font-heading text-xl sm:text-2xl">Ingredients</h2>
+              <ul className="mt-2 text-royal-green/80 space-y-1 text-sm sm:text-base">
+                {product.ingredients.map((i) => <li key={i}>• {i}</li>)}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </main>

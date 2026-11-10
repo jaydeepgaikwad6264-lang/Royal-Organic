@@ -7,7 +7,7 @@ import { formatINR } from '../../lib/format'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useClientOnly } from '../../lib/useClientOnly'
-import { products } from '../../data/products'
+import { useAllProducts } from '../../lib/useAllProducts'
 import Script from 'next/script'
 
 declare global {
@@ -34,6 +34,7 @@ function PaymentPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const isClient = useClientOnly()
+  const allProducts = useAllProducts()
 
   const initOrderAndRazorpay = useCallback(async () => {
     try {
@@ -215,7 +216,7 @@ function PaymentPageContent() {
 
   const displayTotal = displayProducts.reduce((acc, item) => acc + item.quantity * item.pricePerUnit, 0)
   const savings = displayProducts.reduce((acc, item) => {
-    const product = products.find(p => p.id === item.productId)
+    const product = allProducts.find(p => p.id === item.productId)
     const original = product ? product.originalPrice : item.pricePerUnit * 1.3
     return acc + ((original - item.pricePerUnit) * item.quantity)
   }, 0)
@@ -341,7 +342,7 @@ function PaymentPageContent() {
                 
                 <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 max-h-60 lg:max-h-none overflow-y-auto sm:overflow-visible pr-1 sm:pr-0">
                   {displayProducts.map((item, index) => {
-                    const product = products.find(p => p.id === item.productId)
+                    const product = allProducts.find(p => p.id === item.productId)
                     return (
                       <div key={index} className="flex items-center gap-2.5 sm:gap-4 pb-2.5 sm:pb-4 border-b border-gray-100 last:border-0 last:pb-0">
                         <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-lg flex items-center justify-center text-lg sm:text-2xl flex-shrink-0">

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useCart } from '../../lib/cartContext'
-import { products } from '../../data/products'
+import { useAllProducts } from '../../lib/useAllProducts'
 import { formatINR } from '../../lib/format'
 import Link from 'next/link'
 import { useClientOnly } from '../../lib/useClientOnly'
@@ -12,6 +12,7 @@ export default function CartPage() {
   const { cart, updateQuantity, removeFromCart, clearCart, totalItems, totalPrice, loading: cartLoading } = useCart()
   const [processing, setProcessing] = useState<string | null>(null)
   const isClient = useClientOnly()
+  const allProducts = useAllProducts()
 
   const itmKey = (item: { productId: string; variantId?: string }) =>
     `${item.productId}::${item.variantId || ''}`
@@ -48,7 +49,7 @@ export default function CartPage() {
   }
 
   const savings = cart.reduce((acc, item) => {
-    const product = products.find((p) => p.id === item.productId)
+    const product = allProducts.find((p) => p.id === item.productId)
     const original = product ? product.originalPrice : item.pricePerUnit * 1.3
     return acc + (original - item.pricePerUnit) * item.quantity
   }, 0)
@@ -68,7 +69,7 @@ export default function CartPage() {
           {/* Cart Item Cards */}
           <div className="lg:col-span-2 space-y-3 sm:space-y-4">
             {cart.map((item) => {
-              const product = products.find((p) => p.id === item.productId)
+              const product = allProducts.find((p) => p.id === item.productId)
               if (!product) return null
               const originalPrice = product.originalPrice || Math.round(item.pricePerUnit * 1.3)
 

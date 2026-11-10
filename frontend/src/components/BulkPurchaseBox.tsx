@@ -4,28 +4,30 @@ import { useRouter } from 'next/navigation'
 import { formatINR } from '../lib/format'
 import { useCart } from '../lib/cartContext'
 import { useClientOnly } from '../lib/useClientOnly'
-import { products } from '../data/products'
+import type { ProductVariant } from '../types/product'
 
 export default function BulkPurchaseBox({
-  productSlug,
+  productId,
   unitPrice,
+  variants = [],
+  defaultVariantId,
+  inStock,
 }: {
-  productSlug: string
+  productId: string
   unitPrice?: number
+  variants?: ProductVariant[]
+  defaultVariantId?: string
+  inStock: boolean
 }) {
   const [qty, setQty] = useState<number>(1)
   const [processing, setProcessing] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const { addToCart } = useCart()
-  const product = products.find(p => p.slug === productSlug)
-  const variants = product?.variants || []
-  const defaultVariantId =
-    product?.defaultVariantId || (variants.length > 0 ? variants[0].id : undefined)
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
-    defaultVariantId,
+    defaultVariantId || (variants.length > 0 ? variants[0].id : undefined),
   )
   const selectedVariant = variants.find(v => v.id === selectedVariantId)
-  const activePrice = selectedVariant?.price ?? product?.price ?? unitPrice ?? 0
+  const activePrice = selectedVariant?.price ?? unitPrice ?? 0
   const isClient = useClientOnly()
   const router = useRouter()
 
@@ -47,7 +49,7 @@ export default function BulkPurchaseBox({
   }
 
   const total = activePrice * qty
-  const isValid = qty >= 1 && product && product.inStock && !!selectedVariant
+  const isValid = qty >= 1 && inStock && !!selectedVariant
 
   async function handleAddToCart() {
     if (!isValid) return
@@ -60,7 +62,7 @@ export default function BulkPurchaseBox({
 
     setProcessing(true)
     try {
-      await addToCart(product!.id, qty, selectedVariantId)
+      await addToCart(productId, qty, selectedVariantId)
       if (typeof window !== 'undefined') {
         window.scrollTo({ top: 0, behavior: 'smooth' })
         window.dispatchEvent(new CustomEvent('royal:openCart'))
@@ -125,7 +127,7 @@ export default function BulkPurchaseBox({
           {formatINR(activePrice)} per unit{selectedVariant ? ` • ${selectedVariant.label}` : ''}
         </div>
       </div>
-      {product && !product.inStock ? (
+      {!inStock ? (
         <button
           className="mt-4 sm:mt-5 px-4 sm:px-6 py-3 bg-gray-300 text-gray-500 cursor-not-allowed rounded-xl w-full text-sm sm:text-base min-h-[52px] font-semibold"
           disabled

@@ -1,7 +1,8 @@
 import Filters from '../../components/Filters'
 import Section from '../../components/Section'
 import ProductCard from '../../components/ProductCard'
-import { products } from '../../data/products'
+import { getAllProducts } from '../../lib/productCatalog'
+import type { Product } from '../../types/product'
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
@@ -31,15 +32,16 @@ export const metadata: Metadata = {
   },
 }
 
-function filterProducts(filter: string | null) {
-  if (!filter) return products
-  if (filter === 'powder') return products.filter((p) => p.category === 'powder')
-  if (filter === 'capsules') return products.filter((p) => p.category === 'capsules')
-  return products
+function filterProducts(items: Product[], filter: string | null) {
+  if (!filter) return items
+  if (filter === 'powder') return items.filter((p) => p.category === 'powder')
+  if (filter === 'capsules') return items.filter((p) => p.category === 'capsules')
+  return items
 }
 
-export default function ShopPage({ searchParams }: { searchParams: { filter?: string } }) {
-  const data = filterProducts(searchParams.filter ?? null)
+export default async function ShopPage({ searchParams }: { searchParams: { filter?: string } }) {
+  const allProducts = await getAllProducts()
+  const data = filterProducts(allProducts, searchParams.filter ?? null)
   if (!data.length) notFound()
 
   // Generate Google Merchant-compliant JSON-LD schema for listed products

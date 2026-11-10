@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt'
 import passport from 'passport'
 import dotenv from 'dotenv'
 import User from '../models/User.js'
+import { isAdminEmail } from '../middlewares/admin.js'
 import { isValidEmail, isNonEmptyString } from '../utils/validators.js'
 import { signToken } from '../utils/jwt.js'
 
@@ -40,6 +41,25 @@ export async function login(req, res) {
   }
   const token = signToken({ id: user._id.toString(), email: user.email, provider: user.authProvider })
   res.json({ token, user: { id: user._id, name: user.name, email: user.email, provider: user.authProvider } })
+}
+
+// Current session user (used by the frontend to detect admin access)
+export async function me(req, res) {
+  try {
+    const user = await User.findById(req.user.id)
+    if (!user) return res.status(401).json({ error: 'Unauthorized' })
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      provider: user.authProvider,
+      avatar: user.avatar,
+      isAdmin: isAdminEmail(user.email),
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Failed to load user' })
+  }
 }
 
 // Initiate Google OAuth

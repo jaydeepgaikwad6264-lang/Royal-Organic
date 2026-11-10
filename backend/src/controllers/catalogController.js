@@ -25,6 +25,18 @@ export async function getCatalogProductBySlugHandler(req, res) {
   }
 }
 
+export async function listStorefrontProducts(req, res) {
+  try {
+    const products = await CatalogProduct.find({ storefront: true, active: true })
+      .sort({ createdAt: -1 })
+      .lean()
+    res.json(products)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Failed to fetch products' })
+  }
+}
+
 export async function updateVariantStock(req, res) {
   try {
     const { productId, variantId } = req.params

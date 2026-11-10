@@ -4,12 +4,13 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useClientOnly } from '../../lib/useClientOnly'
 import { api, Order, Address } from '../../lib/api'
-import { products } from '../../data/products'
+import { useAllProducts } from '../../lib/useAllProducts'
 import { formatINR } from '../../lib/format'
 
 function ThankYouContent() {
   const searchParams = useSearchParams()
   const isClient = useClientOnly()
+  const allProducts = useAllProducts()
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -185,7 +186,7 @@ function ThankYouContent() {
                   </h2>
                   <div className="bg-gradient-to-br from-gray-50 to-emerald-50 rounded-2xl p-3 sm:p-4 space-y-2 sm:space-y-3">
                     {orderedItems.map((item, i) => {
-                      const product = products.find(p => p.id === item.productId)
+                      const product = allProducts.find(p => p.id === item.productId)
                       return (
                         <div key={i} className="flex items-center gap-3 sm:gap-4 bg-white p-3 sm:p-4 rounded-xl shadow-sm">
                           <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-lg flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">

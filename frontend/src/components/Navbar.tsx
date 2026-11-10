@@ -5,9 +5,10 @@ import { useCart } from '../lib/cartContext'
 import { useEffect, useState, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { useClientOnly } from '../lib/useClientOnly'
-import { products } from '../data/products'
+import { useAllProducts } from '../lib/useAllProducts'
+import { api } from '../lib/api'
 import { formatINR } from '../lib/format'
-import { FaShoppingCart, FaTimes, FaUserCircle, FaChevronDown, FaMapMarkerAlt, FaSignOutAlt, FaBox } from 'react-icons/fa'
+import { FaShoppingCart, FaTimes, FaUserCircle, FaChevronDown, FaMapMarkerAlt, FaSignOutAlt, FaBox, FaTachometerAlt } from 'react-icons/fa'
 import Image from 'next/image'
 import logoImg from '../lib/logo.jpeg'
 
@@ -29,6 +30,7 @@ function extractNameFromEmail(email: string): string {
 export default function Navbar() {
   const { cart, totalItems, totalPrice, removeFromCart, updateQuantity, loading: cartLoading, fetchCart } = useCart()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [displayName, setDisplayName] = useState<string>('')
   const [showMiniCart, setShowMiniCart] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
@@ -38,6 +40,7 @@ export default function Navbar() {
   const userDropdownRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
   const isClient = useClientOnly()
+  const allProducts = useAllProducts()
 
   useEffect(() => {
     if (!isClient) return
@@ -60,8 +63,12 @@ export default function Navbar() {
           }
         }
         setDisplayName(email ? extractNameFromEmail(email) : 'User')
+        api.getSession()
+          .then(session => setIsAdmin(!!session.isAdmin))
+          .catch(() => setIsAdmin(false))
       } else {
         setDisplayName('')
+        setIsAdmin(false)
       }
     }
     
@@ -219,7 +226,7 @@ export default function Navbar() {
                         </div>
                       ) : (
                         cart.map((item) => {
-                          const product = products.find(p => p.id === item.productId)
+                          const product = allProducts.find(p => p.id === item.productId)
                           const rowKey = `${item.productId}::${item.variantId || ''}`
                           return (
                             <div key={rowKey} className="p-4 sm:p-4 border-b border-gray-100 hover:bg-gray-50 active:bg-gray-100 sm:active:bg-transparent">
@@ -354,6 +361,17 @@ export default function Navbar() {
                         My Orders
                       </Link>
 
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setShowUserDropdown(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                        >
+                          <FaTachometerAlt className="w-4 h-4 text-emerald-600" />
+                          Admin Dashboard
+                        </Link>
+                      )}
+
                       <Link
                         href="/address"
                         onClick={() => setShowUserDropdown(false)}
@@ -446,6 +464,17 @@ export default function Navbar() {
                       <FaBox className="w-4 h-4 text-yellow-300" />
                       My Orders
                     </Link>
+
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setShowMobileMenu(false)}
+                        className="flex items-center gap-3 px-4 py-3 bg-yellow-400 hover:bg-yellow-300 text-emerald-900 rounded-lg font-bold transition-colors"
+                      >
+                        <FaTachometerAlt className="w-4 h-4" />
+                        Admin Dashboard
+                      </Link>
+                    )}
 
                     <button
                       type="button"

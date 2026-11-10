@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api, Order, OrderItem, Address, TrackingResponse } from '../../lib/api'
 import { formatINR } from '../../lib/format'
-import { products } from '../../data/products'
+import { useAllProducts } from '../../lib/useAllProducts'
 import Link from 'next/link'
 import { useClientOnly } from '../../lib/useClientOnly'
 import { useRouter } from 'next/navigation'
@@ -73,6 +73,7 @@ export default function MyOrdersPage() {
   const [trackingError, setTrackingError] = useState('')
   const [retryingOrderId, setRetryingOrderId] = useState<string | null>(null)
   const isClient = useClientOnly()
+  const allProducts = useAllProducts()
   const router = useRouter()
 
   useEffect(() => {
@@ -401,7 +402,7 @@ export default function MyOrdersPage() {
                       {editingOrderId === order._id ? (
                         <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
                           {editingProducts.map((item, index) => {
-                            const product = products.find(p => p.id === item.productId)
+                            const product = allProducts.find(p => p.id === item.productId)
                             return (
                               <div key={index} className="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-yellow-50 rounded-2xl border-2 border-yellow-200">
                                 <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-xl flex items-center justify-center text-xl sm:text-2xl flex-shrink-0">
@@ -464,7 +465,7 @@ export default function MyOrdersPage() {
                       ) : (
                         <div className="space-y-2 sm:space-y-3">
                           {order.products.map((item, index) => {
-                            const product = products.find(p => p.id === item.productId)
+                            const product = allProducts.find(p => p.id === item.productId)
                             return (
                               <div
                                 key={index}

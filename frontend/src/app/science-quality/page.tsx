@@ -1,5 +1,5 @@
 import Section from '../../components/Section'
-import Image from 'next/image'
+import CertificateGallery from '../../components/CertificateGallery'
 import { Metadata } from 'next'
 import certAyush from '../../lib/certificates/Ayush License_New_front only (1)_page-0001.jpg'
 import certUsfda from '../../lib/certificates/HERBALFARM LIFECARE_USFDA_page-0001.jpg'
@@ -93,25 +93,10 @@ export default function ScienceQualityPage() {
 
           <div className="space-y-4 sm:space-y-5 lg:sticky lg:top-24">
             <h2 className="font-heading text-xl sm:text-2xl">Our Certifications</h2>
-            <div className="grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-2 gap-4">
-              {certificates.map((cert) => (
-                <div
-                  key={cert.alt}
-                  className="aspect-[4/3] rounded-2xl border border-emerald-900/10 bg-gradient-to-br from-stone-50 via-white to-amber-50/70 shadow-[0_10px_30px_-12px_rgba(6,78,59,0.25)] p-2.5 sm:p-3 relative overflow-hidden"
-                >
-                  <div className="absolute inset-2 rounded-xl ring-1 ring-inset ring-emerald-900/10 pointer-events-none" />
-                  <div className="relative w-full h-full rounded-lg overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.04)] bg-white">
-                    <Image
-                      src={cert.src}
-                      alt={cert.alt}
-                      fill
-                      className="object-contain p-1.5 sm:p-2"
-                      sizes="(max-width: 1024px) 50vw, 25vw"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <CertificateGallery certificates={certificates} />
+            <p className="text-xs text-royal-green/70 sm:text-sm">
+              Tap any certificate to open the zoomable viewer and read the fine print.
+            </p>
           </div>
         </div>
       </Section>

@@ -1,10 +1,11 @@
 import { Router } from 'express'
 import { requireAuth } from '../middlewares/auth.js'
 import { requireAdmin } from '../middlewares/admin.js'
-import { getCatalogProduct, getCatalogProductBySlugHandler, updateVariantStock } from '../controllers/catalogController.js'
+import { getCatalogProduct, getCatalogProductBySlugHandler, listStorefrontProducts, updateVariantStock } from '../controllers/catalogController.js'
 
 const router = Router()
 
+router.get('/products', listStorefrontProducts)
 router.get('/products/slug/:slug', getCatalogProductBySlugHandler)
 router.get('/products/:productId', getCatalogProduct)
 
